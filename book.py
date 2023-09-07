@@ -1,5 +1,4 @@
 
-
 class Book:
     def __init__(self, title, author, id, iban, publisher, year_published):
         self._title = title
@@ -23,15 +22,10 @@ class Book:
     def is_rented(self):
         if self.current_renter is None:
             return False
-
         return True
 
     def add_to_queue(self, person):
-        if person in self.queue:
-            return False
-
         self.queue.append(person)
-        return True
 
     @property
     def title(self):
