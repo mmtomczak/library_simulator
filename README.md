@@ -1,2 +1,2 @@
-# library_simulator
+# Library Simulator
 Simulation of library

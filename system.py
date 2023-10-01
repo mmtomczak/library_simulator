@@ -6,14 +6,7 @@ WORKER_ID_TYPE = "110"
 BOOK_ID_TYPE = "220"
 CUSTOMER_ID_TYPE = "330"
 
-# TODO: change all methods of external interaction to be based on ID's not object instances
-# TODO: get worker by ID
-# TODO: get customer by ID
-
 # TODO: position-specific roles for worker functionality
-# TODO: remove from book queue
-# TODO: get book due date
-# TODO: get book status
 
 
 class LibrarySystem:
@@ -198,20 +191,24 @@ class LibrarySystem:
             item.id = int(id_type + str(number))
         return True
 
-    def rent_book(self, customer: Customer, book_id: int):
-        # TODO: Customer object instance, not id - to be changed
+    def rent_book(self, customer_id: int, book_id: int):
         """
         Rents a book to a customer.
 
         Args:
-            customer (Customer): Customer that rents the book
+            customer_id (int): ID of a customer that rents the book
             book_id (int): ID of the rented book
 
         Returns:
-
+            True if successful, False otherwise
         """
         book = self.get_book_by_id(book_id)
+        customer = self.get_customer_by_id(customer_id)
+        # If book queue isn't empty it cannot be rented
         if book.queue:
+            return False
+        # Customer can't rent two the same books
+        if book in customer.rented_books:
             return False
 
         return_time = self.date + datetime.timedelta(days=30)
@@ -219,19 +216,19 @@ class LibrarySystem:
         customer.rent_book(book)
         return True
 
-    def add_to_queue(self, customer: Customer, book_id: int):
-        # TODO: Customer object instance, not id - to be changed
+    def add_to_queue(self, customer_id: int, book_id: int):
         """
         Adds customer to the book waiting queue.
 
         Args:
-            customer (Customer): Customer that is to be added to queue
+            customer_id (int): ID of a customer that is to be added to queue
             book_id (int): ID of book that queue is updated
 
         Returns:
             True if successful, else False
         """
         book = self.get_book_by_id(book_id)
+        customer = self.get_customer_by_id(customer_id)
         if Customer in book.queue:
             # If customer is already in the queue return False
             return False
@@ -239,28 +236,117 @@ class LibrarySystem:
         book.add_to_queue(customer)
         return True
 
-    def return_book(self, customer: Customer, book_id: int) -> float:
-        # TODO: Customer instance object, not id - to be changed
+    def remove_from_queue(self, customer_id: int, book_id: int):
+        """
+        Removes customer from book queue (if present in queue)
+
+        Args:
+            customer_id (int): ID of a customer that is to be removed from book queue
+            book_id (int): ID of a book from whose queue customer is to be remover
+
+        Returns:
+            True if successful, False otherwise
+        """
+        customer = self.get_customer_by_id(customer_id)
+        book = self.get_book_by_id(book_id)
+
+        if customer in book.queue:
+            book.queue.remove(customer)
+            return True
+        return False
+
+    def return_book(self, customer_id: int, book_id: int) -> float:
         """
         Returns rented book to the library.
 
         Args:
-            customer (Customer): Customer that is returning a rented book.
-            book_id (int): ID of the book that is being returned
+            customer_id (int): ID of a customer
+            book_id (int): ID of a book
 
         Returns:
             float: Fee value to be paid for late return
         """
         book = self.get_book_by_id(book_id)
+        customer = self.get_customer_by_id(customer_id)
+        # if provided book is not rented by provided customer raise ValueError
+        if book not in customer.rented_books:
+            raise ValueError
         fee = self.calculate_fee(book)
         customer.return_book(book)
         book.return_book()
         return fee
 
+    def is_book_rented(self, book_id: int):
+        """
+        Returns information about book's current rent status
+
+        Args:
+            book_id (int): ID of book
+
+        Returns:
+            True if book is rented, False otherwise
+        """
+        book = self.get_book_by_id(book_id)
+        return book.is_rented()
+
+    def get_book_due_date(self, book_id: int):
+        """
+        Returns book's return date
+
+        Args:
+            book_id: ID of a book
+
+        Returns:
+            Return date if book is rented, 0 otherwise
+        """
+        if not self.is_book_rented(book_id):
+            return 0
+        book = self.get_book_by_id(book_id)
+        return book.return_date
+
     def get_book_by_id(self, id: int):
+        """
+        Returns Book class instance of a given ID
+
+        Args:
+            id (int): ID of a book
+
+        Returns:
+            Book class instance if found ID match, None otherwise
+        """
         for book in self._books:
             if book.id == id:
                 return book
+        return None
+
+    def get_customer_by_id(self, id: int):
+        """
+        Returns Customer class instance of a given ID
+
+        Args:
+            id (int): ID of a customer
+
+        Returns:
+            Customer class instance if found ID match, None otherwise
+        """
+        for customer in self._customers:
+            if customer.id == id:
+                return customer
+        return None
+
+    def get_worker_by_id(self, id: int):
+        """
+        Returns Worker class instance of a given ID
+
+        Args:
+            id (int): ID of a worker
+
+        Returns:
+            Worker class instance if found ID match, None otherwise
+        """
+        for worker in self._workers:
+            if worker.id == id:
+                return worker
         return None
 
     def calculate_fee(self, book: Book):

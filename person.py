@@ -42,15 +42,9 @@ class Customer(Person):
         self.rating = 0
 
     def return_book(self, book):
-        if book not in self.rented_books:
-            raise ValueError
         self.rented_books.remove(book)
 
     def rent_book(self, book):
-        # Customer can't rent two the same books
-        if book in self.rented_books:
-            return False
-
         self.rented_books.append(book)
         return True
 
