@@ -6,20 +6,20 @@ class Book:
     Args:
         title: Title of the book
         author: Author of the book
-        iban: IBAN number of the book
+        isbn: ISBN of the book
         publisher: Publisher of the book
         year_published: Year of the book publication
+        id: ID of the book
 
     Attributes:
-        id: ID of the book
         current_renter: Current book renter
         return_date: Book return date
         queue: Book rent queue
     """
-    def __init__(self, title, author, id, iban, publisher, year_published):
+    def __init__(self, title, author, id, isbn, publisher, year_published):
         self._title = title
         self._author = author
-        self._iban = iban
+        self._isbn = isbn
         self._id = id
         self._publisher = publisher
         self._year_published = year_published
@@ -76,9 +76,9 @@ class Book:
         return self._author
 
     @property
-    def iban(self):
-        """Get or set book IBAN number"""
-        return self._iban
+    def isbn(self):
+        """Get or set book ISBN"""
+        return self._isbn
 
     @property
     def id(self):
@@ -103,9 +103,9 @@ class Book:
     def author(self, new_author):
         self._author = new_author
 
-    @iban.setter
-    def iban(self, new_iban):
-        self._iban = new_iban
+    @isbn.setter
+    def isbn(self, new_isbn):
+        self._isbn = new_isbn
 
     @id.setter
     def id(self, new_id):
