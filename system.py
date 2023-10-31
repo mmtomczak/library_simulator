@@ -62,7 +62,8 @@ class LibrarySystem:
     def _close_database(self):
         self._db_connection.close()
 
-    def add_book(self, title: str, author: str, isbn=None, publisher=None, year_published=None, book_id: int = None):
+    def add_book(self, title: str, author: str, isbn=None, publisher=None, year_published=None, book_id: int = None,
+                 database_load: bool = False):
         """
         Adds new book to the library book list.
 
@@ -73,10 +74,13 @@ class LibrarySystem:
             publisher (str, optional): publisher of the book
             year_published (int, optional): Year of the book publication
             book_id (int, optional): ID of the book - use only if data is loaded from database
+            database_load (bool, optional): set to True if data is not to be added to the database
 
         """
         if book_id is None:
             book_id = getattr(self, "return_and_update_id")(self._new_book_id, "_new_book_id")
+
+        if not database_load:
             if self._cursor:
                 query = (book_id, title, author, isbn, publisher, year_published)
                 self._cursor.execute(
@@ -91,7 +95,7 @@ class LibrarySystem:
                                 publisher=publisher,
                                 year_published=year_published))
 
-    def add_worker(self, name: str, position: str, worker_id: int = None):
+    def add_worker(self, name: str, position: str, worker_id: int = None, database_load: bool = False):
         """
         Adds library worker.
 
@@ -99,9 +103,11 @@ class LibrarySystem:
             name (str): Name of the worker
             position (str): Position of the worker
             worker_id (int, optional): ID of the worker - use only if data is loaded from database
+            database_load (bool, optional): set to True if data is not to be added to the database
         """
         if worker_id is None:
             worker_id = getattr(self, "return_and_update_id")(self._new_worker_id, "_new_worker_id")
+        if not database_load:
             if self._cursor:
                 query = (worker_id, name, position)
                 self._cursor.execute(
@@ -113,16 +119,18 @@ class LibrarySystem:
                                     id=worker_id,
                                     position=position))
 
-    def add_customer(self, name: str, customer_id: int = None):
+    def add_customer(self, name: str, customer_id: int = None, database_load: bool = False):
         """
         Adds library customer.
 
         Args:
             name (str): Name of the customer
             customer_id (int, optional): ID of the customer - use only if data is loaded from database
+            database_load (bool, optional): set to True if data is not to be added to the database
         """
         if customer_id is None:
             customer_id = getattr(self, "return_and_update_id")(self._new_customer_id, "_new_customer_id")
+        if not database_load:
             if self._cursor:
                 query = (customer_id, name)
                 self._cursor.execute(
@@ -200,7 +208,7 @@ class LibrarySystem:
         setattr(self, kind, new_id)
         return id
 
-    def rent_book(self, customer_id: int, book_id: int, return_time=None):
+    def rent_book(self, customer_id: int, book_id: int, return_time=None, database_load: bool = False):
         """
         Rents a book to a customer.
 
@@ -208,6 +216,7 @@ class LibrarySystem:
             customer_id (int): ID of a customer that rents the book
             book_id (int): ID of the rented book
             return_time (optional): book return date, used when data is loaded from database, defaults to None
+            database_load (bool, optional): set to True if data is not to be added to the database
 
         Returns:
             True if successful, False otherwise
@@ -224,40 +233,47 @@ class LibrarySystem:
         if not return_time:
             return_time = self.date + datetime.timedelta(days=30)
 
-        if self._cursor:
-            self._cursor.execute(
-                f"""INSERT INTO rents(book_id, customer_id, return_date) 
-                    VALUES({book_id}, {customer_id}, '{return_time}')"""
-            )
-            self._db_connection.commit()
-
+        if not database_load:
+            if self._cursor:
+                self._cursor.execute(
+                    f"""INSERT INTO rents(book_id, customer_id, return_date) 
+                        VALUES({book_id}, {customer_id}, '{return_time}')"""
+                )
+                self._db_connection.commit()
         book.rent_book(customer, return_time)
         customer.rent_book(book)
         return True
 
-    def add_to_queue(self, customer_id: int, book_id: int):
+    def add_to_queue(self, customer_id: int, book_id: int, rent_if_empty: bool = True, database_load: bool = False):
         """
         Adds customer to the book waiting queue.
 
         Args:
             customer_id (int): ID of a customer that is to be added to queue
             book_id (int): ID of book that queue is updated
+            rent_if_empty (bool, optional): automatically rents the book if queue is empty
+            database_load (bool, optional): set to True if data is not to be added to the database
 
         Returns:
             True if successful, else False
         """
         book = self.get_book_by_id(book_id)
         customer = self.get_customer_by_id(customer_id)
-        if Customer in book.queue:
+        if customer in book.queue:
             # If customer is already in the queue return False
             return False
 
-        if self._cursor:
-            self._cursor.execute(
-                f"""INSERT INTO queues(book_id, customer_id) 
-                    VALUES({book_id}, {customer_id})"""
-            )
-            self._db_connection.commit()
+        if rent_if_empty:
+            if not book.queue:
+                return self.rent_book(customer_id=customer_id, book_id=book_id, database_load=database_load)
+
+        if not database_load:
+            if self._cursor:
+                self._cursor.execute(
+                    f"""INSERT INTO queues(book_id, customer_id) 
+                        VALUES({book_id}, {customer_id})"""
+                )
+                self._db_connection.commit()
 
         book.add_to_queue(customer)
         return True
@@ -423,30 +439,38 @@ class LibrarySystem:
         self._new_worker_id = self.workers[-1].id + 1
         self._new_customer_id = self.customers[-1].id + 1
 
-    def load_database(self):
+    def load_database(self, **kwargs):
         if self._cursor is None:
             return False
 
         result_books = self._cursor.execute("SELECT * FROM books")
         for row in result_books:
             self.add_book(book_id=row[0], title=row[1], author=row[2], isbn=row[3], publisher=row[4],
-                          year_published=row[5])
+                          year_published=row[5], database_load=True)
 
         result_workers = self._cursor.execute("SELECT * FROM workers")
         for row in result_workers:
-            self.add_worker(worker_id=row[0], name=row[1], position=row[2])
+            self.add_worker(worker_id=row[0], name=row[1], position=row[2], database_load=True)
 
         result_customers = self._cursor.execute("SELECT * FROM customers")
         for row in result_customers:
-            self.add_customer(customer_id=row[0], name=row[1])
+            self.add_customer(customer_id=row[0], name=row[1], database_load=True)
 
         result_rents = self._cursor.execute("SELECT * FROM rents")
         for row in result_rents:
-            self.rent_book(customer_id=row[2], book_id=row[1], return_time=row[3])
+            self.rent_book(customer_id=row[2], book_id=row[1],
+                           return_time=datetime.datetime.strptime(row[3], "%Y-%m-%d %H:%M:%S.%f"),
+                           database_load=True)
 
         result_queues = self._cursor.execute("SELECT * FROM queues")
+
+        try:
+            rent_if_empty = kwargs["rent_if_empty"]
+        except KeyError:
+            rent_if_empty = False
+
         for row in result_queues:
-            self.add_to_queue(customer_id=row[2], book_id=row[1])
+            self.add_to_queue(customer_id=row[2], book_id=row[1], rent_if_empty=rent_if_empty, database_load=True)
 
         self._set_ids()
         return True
