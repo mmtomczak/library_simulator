@@ -1,6 +1,6 @@
 import pytest
 
-from book import Book
+from library_sys.book import Book
 
 SAMPLE_BOOK = {"title": "book tests",
                "author": "boo author",

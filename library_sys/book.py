@@ -29,7 +29,7 @@ class Book:
 
     def rent_book(self, renter, return_time):
         """
-        Rents the book
+        Rents the book to the given renter
 
         Args:
             renter: Renter of the book

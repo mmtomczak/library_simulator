@@ -1,7 +1,7 @@
 import datetime
 import sqlite3
 import pytest
-from system import LibrarySystem
+from library_sys.system import LibrarySystem
 from database_generator import DatabaseGenerator
 
 TEST_DB_PATH = "database/test.db"
@@ -16,25 +16,25 @@ TEST_DATASET = {
             (2205, "book6", "author6", "isbn6", "publisher", 1990),
         ],
     "customers_data": [
-            (3300, "customer1"),
-            (3301, "customer2"),
-            (3302, "customer3"),
-            (3303, "customer4"),
+            (1100, "customer1"),
+            (1101, "customer2"),
+            (1102, "customer3"),
+            (1103, "customer4"),
         ],
     "workers_data": [
-            (1100, "worker1", "position"),
-            (1101, "worker2", "position"),
+            (3300, "worker1", "position"),
+            (3301, "worker2", "position"),
         ],
     "queues": [
-            (3300, 2200),
-            (3300, 2201),
-            (3301, 2201),
-            (3302, 2205),
-            (3303, 2205)
+            (1100, 2200, 3300),
+            (1100, 2201, 3301),
+            (1101, 2201, 3301),
+            (1102, 2205, 3300),
+            (1103, 2205, 3300)
         ],
     "rents": [
-            (2200, 3301, datetime.datetime.now() + datetime.timedelta(30)),
-            (2202, 3302, datetime.datetime.now() - datetime.timedelta(2))
+            (2200, 1101, 3300, datetime.datetime.now() + datetime.timedelta(30)),
+            (2202, 1102, 3301, datetime.datetime.now() - datetime.timedelta(2))
         ]
 }
 
@@ -111,30 +111,30 @@ def test_return_and_update_id_customer(library_simple):
 
 
 def test_rent_book_no_queue(library_simple):
-    result = library_simple.rent_book(0, 0)
+    result = library_simple.rent_book(0, 0, 0)
     assert result and library_simple.is_book_rented(0)
 
 
 def test_rent_book_first_in_queue(library_simple):
-    queue_result = library_simple.add_to_queue(0, 0, rent_if_empty=False)
-    rent_result = library_simple.rent_book(0, 0)
+    queue_result = library_simple.add_to_queue(0, 0, 0, rent_if_empty=False)
+    rent_result = library_simple.rent_book(0, 0, 0)
     assert queue_result and rent_result and library_simple.is_book_rented(0)
 
 
 def test_rent_book_in_queue(library_simple):
     library_simple.add_customer("customer")
-    queue_result = library_simple.add_to_queue(1, 0, rent_if_empty=False)
-    rent_result = library_simple.rent_book(0, 0)
+    queue_result = library_simple.add_to_queue(1, 0, 0, rent_if_empty=False)
+    rent_result = library_simple.rent_book(0, 0, 0)
     assert queue_result and not rent_result and not library_simple.is_book_rented(0)
 
 
 def test_add_to_queue(library_simple):
-    result = library_simple.add_to_queue(0, 0, rent_if_empty=False)
+    result = library_simple.add_to_queue(0, 0, 0, rent_if_empty=False)
     assert result and len(library_simple.books[0].queue) == 1
 
 
 def test_remove_from_queue(library_simple):
-    library_simple.add_to_queue(0, 0, rent_if_empty=False)
+    library_simple.add_to_queue(0, 0, 0, rent_if_empty=False)
     result = library_simple.remove_from_queue(0, 0)
     assert result and len(library_simple.books[0].queue) == 0
 
@@ -145,7 +145,7 @@ def test_try_remove_from_queue(library_simple):
 
 
 def test_return_book(library_simple):
-    library_simple.rent_book(0, 0)
+    library_simple.rent_book(0, 0, 0)
     library_simple.return_book(0, 0)
     assert not library_simple.is_book_rented(0)
 
@@ -155,7 +155,7 @@ def test_is_book_rented(library_simple):
 
 
 def test_get_book_due_date(library_simple):
-    library_simple.rent_book(0, 0)
+    library_simple.rent_book(0, 0, 0)
     assert type(library_simple.books[0].return_date) == datetime.datetime
 
 
@@ -175,10 +175,10 @@ def test_get_worker_by_id(library_simple):
 
 
 def test_calculate_fee(library_simple):
-    library_simple.rent_book(0, 0)
+    library_simple.rent_book(0, 0, 0)
     library_simple.update_date(50)
     result = library_simple.return_book(0, 0)
-    assert type(result) == float and result == 20 * 0.5
+    assert isinstance(result, float) and result == 20 * 0.5
 
 
 def test_update_date(library_simple):
@@ -273,102 +273,99 @@ def test_remove_customer_db(library_database):
 
 
 def test_rent_book_db_failed(library_database):
-    result = library_database.rent_book(customer_id=TEST_DATASET["rents"][0][1], book_id=TEST_DATASET["rents"][0][0])
+    result = library_database.rent_book(customer_id=TEST_DATASET["rents"][0][1], book_id=TEST_DATASET["rents"][0][0],
+                                        worker_id=TEST_DATASET["rents"][0][2])
     assert (not result and
             len(library_database._cursor.execute("SELECT * FROM rents").fetchall()) == len(TEST_DATASET["rents"]))
 
 
 def test_rent_book_db_successful(library_database):
-    result = library_database.rent_book(customer_id=3300, book_id=2201)
+    result = library_database.rent_book(customer_id=1100, book_id=2201, worker_id=TEST_DATASET["workers_data"][0][0])
     assert (result and
             len(library_database._cursor.execute("SELECT * FROM rents").fetchall()) == len(TEST_DATASET["rents"]) + 1)
 
 
 def test_rent_book_db_not_firs_in_queue(library_database):
-    result = library_database.rent_book(customer_id=3303, book_id=2205)
+    result = library_database.rent_book(customer_id=1103, book_id=2205, worker_id=TEST_DATASET["workers_data"][0][0])
     assert (not result and
             len(library_database._cursor.execute("SELECT * FROM rents").fetchall()) == len(TEST_DATASET["rents"]))
 
 
 def test_add_to_queue_db_successful(library_database):
-    result = library_database.add_to_queue(customer_id=3303, book_id=2201)
+    result = library_database.add_to_queue(customer_id=1103, book_id=2201, worker_id=TEST_DATASET["workers_data"][0][0])
     assert (result and
             len(library_database._cursor.execute("SELECT * FROM queues").fetchall()) == len(TEST_DATASET["queues"]) + 1)
 
 
 def test_add_to_queue_db_failed(library_database):
-    result = library_database.add_to_queue(customer_id=3303, book_id=2205)
+    result = library_database.add_to_queue(customer_id=1103, book_id=2205, worker_id=TEST_DATASET["workers_data"][0][0])
     assert (not result and
             len(library_database._cursor.execute("SELECT * FROM queues").fetchall()) == len(TEST_DATASET["queues"]))
 
 
 def test_remove_from_queue_db_successful(library_database):
-    result = library_database.remove_from_queue(customer_id=3303, book_id=2205)
+    result = library_database.remove_from_queue(customer_id=TEST_DATASET["queues"][-1][0],
+                                                book_id=TEST_DATASET['queues'][-1][1])
     assert (result and
             len(library_database._cursor.execute("SELECT * FROM queues").fetchall()) == len(TEST_DATASET["queues"]) - 1)
 
 
 def test_remove_from_queue_db_failed(library_database):
-    result = library_database.remove_from_queue(customer_id=3303, book_id=2201)
+    result = library_database.remove_from_queue(customer_id=1103, book_id=2201)
     assert (not result and
             len(library_database._cursor.execute("SELECT * FROM queues").fetchall()) == len(TEST_DATASET["queues"]))
 
 
 def test_return_book_db_successful_no_fee(library_database):
-    result = library_database.return_book(customer_id=3301, book_id=2200)
-    assert (type(result) == float and
+    result = library_database.return_book(customer_id=1101, book_id=2200)
+    assert (isinstance(result, float) and
             len(library_database._cursor.execute("SELECT * FROM rents").fetchall()) == len(TEST_DATASET["rents"]) - 1)
 
 
 def test_return_book_db_successful_fee(library_database):
-    result = library_database.return_book(customer_id=3302, book_id=2202)
-    assert (type(result) == float and result > 0 and
+    result = library_database.return_book(customer_id=1102, book_id=2202)
+    assert (isinstance(result, float) and result > 0 and
             len(library_database._cursor.execute("SELECT * FROM rents").fetchall()) == len(TEST_DATASET["rents"]) - 1)
 
 
 def test_return_book_db_failed_wrong_customer(library_database):
     with pytest.raises(ValueError) as err:
-        result = library_database.return_book(customer_id=3303, book_id=2200)
+        result = library_database.return_book(customer_id=1103, book_id=2200)
     assert len(library_database._cursor.execute("SELECT * FROM rents").fetchall()) == len(TEST_DATASET["rents"])
 
 
 def test_return_book_db_failed_wrong_book(library_database):
     with pytest.raises(ValueError) as err:
-        result = library_database.return_book(customer_id=3302, book_id=2201)
+        result = library_database.return_book(customer_id=1102, book_id=2201)
     assert len(library_database._cursor.execute("SELECT * FROM rents").fetchall()) == len(TEST_DATASET["rents"])
 
 
-def test_is_book_rented_db():
-    pass
+def test_is_book_rented_db_true(library_database):
+    result = library_database.is_book_rented(book_id=TEST_DATASET["rents"][0][0])
+    assert result
 
 
-def test_get_book_due_date_db():
-    pass
+def test_is_book_rented_db_false(library_database):
+    result = library_database.is_book_rented(book_id=2205)
+    assert not result
 
 
-def test_get_book_by_id_db():
-    pass
+def test_get_book_due_date_db_rented(library_database):
+    result = library_database.get_book_due_date(book_id=TEST_DATASET["rents"][0][0])
+    assert isinstance(result, datetime.datetime)
 
 
-def test_get_customer_by_id_db():
-    pass
+def test_get_book_due_date_db_not_rented(library_database):
+    result = library_database.get_book_due_date(book_id=2205)
+    assert result is None
 
 
-def test_get_worker_by_id_db():
-    pass
+def test_update_date_db(library_database):
+    library_database.update_date()
+    assert library_database.date == datetime.datetime.now()
 
 
-def test_calculate_fee_db():
-    pass
-
-
-def test_update_date_db():
-    pass
-
-
-def test_set_ids_db():
-    pass
-
-
-def test_load_database_db():
-    pass
+def test_update_date_db_delta(library_database):
+    initial_date = library_database.date
+    library_database.update_date(20)
+    assert library_database.date == (initial_date + datetime.timedelta(days=20))

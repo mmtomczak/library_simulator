@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Simulation
+{% endblock %}
+
+{% block content %}
+    <div id="landing">
+    <p class="h5">SIMULATION</p>
+    <div class="intro">
+        <p class="text-indent">Every iteration in the simulation is regarded to as a day. After each simulation internal library system date is updated by
+            one day. For each day there can be performed several sub-iterations. Sub-iteration makes it possible for every worker to perform (or fail) action.
+        </p>
+    </div>
+        <div id="setup">
+            <div class="intro">
+                <p class="h6">Setup</p>
+                <p>Set the simulation iterations and sub-iterations</p>
+            </div>
+            <p>
+                <label for="iters"><span class="rounded-pill bg-primary font-weight-bold" style="padding:4px 20px; color:white">Number of iterations</span></label>
+            </p>
+            <p class="range-inp">
+                <input type="range" min="1" max="100" id="iters" value="10" name="iters" oninput="this.nextElementSibling.value = this.value">
+                <output>10</output>
+            </p>
+            <p>
+                <label for="actions"><span class="rounded-pill bg-primary font-weight-bold" style="padding:4px 20px; color:white;">Number of sub-iterations</span></label>
+            </p>
+            <p class="range-inp">
+                <input type="range" min="1" max="10" id="actions" value="2" name="actions" oninput="this.nextElementSibling.value = this.value">
+                <output>2</output>
+            </p>
+        </div>
+        <button id="start-sim" class="btn btn-dark">START SIMULATION</button>
+    </div>
+    <div id="sim">
+        <ul id="sim-messages"></ul>
+    </div>
+
+    <script>
+        document.getElementById('start-sim').addEventListener('click', function() {
+        let socket = io();
+        let iters = document.getElementById('iters').value;
+        let actions = document.getElementById('actions').value;
+        document.getElementById("return-main").href = "#";
+        document.getElementById('start-sim').disabled = true;
+        socket.on('connect', function() {
+            socket.emit('message', iters, actions);
+        });
+        socket.on('message', function(msg) {
+            if (msg === undefined) {
+                document.getElementById('start-sim').innerHTML = "CONTINUE SIMULATION"
+                document.getElementById('start-sim').disabled = false;
+                document.getElementById("return-main").href = "{{ url_for('main') }}";
+                let list = document.getElementById("sim-messages");
+                let entry = document.createElement('li');
+                entry.appendChild(document.createTextNode('/'.repeat(42) + ' SIMULATION PAUSED ' + '\\'.repeat(42)));
+                list.appendChild(entry);
+                socket.disconnect()
+            } else {
+                let list = document.getElementById("sim-messages");
+                let entry = document.createElement('li');
+                entry.appendChild(document.createTextNode(msg));
+                list.appendChild(entry);
+            }
+        });
+        socket.on('redirect', function (data) {
+            window.location = data.url;
+        });
+    })
+    </script>
+{% endblock %}

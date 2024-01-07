@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {{ title }} table
+{% endblock %}
+
+{% block content %}
+
+    {% if not no_sim %}
+        <div id="landing">
+            <h1>Data Table for {{ title }}</h1>
+        </div>
+        <div class="datatable">
+            <table class="table-hover">
+                <tr id="schema-row">
+                    {% for title in schema %}
+                    <th id="schema-cell">{{ title }}</th>
+                    {%  endfor %}
+                </tr>
+                {% for row in table %}
+                <tr>
+                    {% for cell in row %}
+                    <th>{{ cell }}</th>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    {% else %}
+        <div id="landing">
+            <h1>Data Table page</h1>
+        </div>
+        <div class="max-div">
+            <p class="h1 rounded-pill bg-warning">SIMULATION IS NOT GENERATED</p>
+            <p class="display-6">generate the simulation to connect to the database</p>
+        </div>
+
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,151 @@
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.dropdown-menu {
+  min-width: 100%;
+  text-align: center;
+}
+
+.datatable {
+    width: 100%;
+    display: flex;
+    align-content: center;
+    justify-content:center;
+}
+
+.datatable table{
+    margin: 20px;
+    border: 3px solid;
+    border-collapse: collapse;
+    display: flex;
+    font-size: 0.7em;
+}
+
+th, tr {
+    padding: 5px 20px;
+    border: 1px solid;
+    justify-content: left;
+}
+
+table tr:first-child:hover {
+    box-shadow: none;
+    background-color: #303030;
+    color: white;
+}
+
+table tr:first-child {
+    font-weight: bold;
+    box-shadow: none;
+    background-color: #303030;
+    color: white;
+}
+
+.dropdown > a:hover {
+    font-weight: normal;
+}
+
+#setup {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+}
+
+a {
+    text-decoration: None;
+    background-color: transparent;
+}
+
+a:hover {
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+header {
+    height: 50px;
+    width: 95%;
+    display: flex;
+    align-items: center;
+    border-bottom: black 2px solid;
+    color: white;
+    font-weight: bold;
+}
+
+output {
+    width: 50px;
+    padding-left: 20px;
+}
+
+.dropdown {
+    padding-top: 20px;
+    padding-bottom: 50px;
+}
+
+.table-button:hover{
+    font-weight: normal;
+}
+
+#landing {
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    width: 85%;
+    align-items: center;
+}
+
+ul {
+    list-style: none;
+}
+
+#sim {
+    margin-top: 10px;
+    height: 300px;
+    width: 750px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    padding: 10px;
+    border: black 2px solid;
+    border-radius: 5px;
+}
+
+input[type="range"] {
+  width:90%;
+}
+
+.text-indent {
+    text-indent: 2.5%;
+}
+
+.button-div {
+    padding-top: 10px;
+    display: flex;
+    width: 100%;
+    align-items: center;
+}
+
+.intro {
+    width: 70%;
+    text-align: justify;
+}
+
+.max-div {
+    padding-top: 20px;
+    width: 50%;
+    height: 1em;
+    text-align: center;
+    padding-bottom: 60px;
+}
+
+.range-inp {
+    display: flex;
+}

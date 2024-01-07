@@ -1,6 +1,6 @@
 import pytest
 
-from person import Person, Worker, Customer
+from library_sys.person import Person, Worker, Customer
 
 SAMPLE_PERSON = {"name": "person",
                  "id": 111}
