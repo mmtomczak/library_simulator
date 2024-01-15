@@ -4,35 +4,71 @@
     {{ title }} table
 {% endblock %}
 
-{% block content %}
+{% block navbar_items %}
+    {{ super() }}
+    <a href="#" class="grey-out">Logged as {{ user.name }}</a>
+{% endblock %}
 
-    {% if not no_sim %}
+{% block navbar_main %}
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-left" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M11.854 3.646a.5.5 0 0 1 0 .708L8.207 8l3.647 3.646a.5.5 0 0 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 0 1 .708 0M4.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 1 0v-13a.5.5 0 0 0-.5-.5"/>
+    </svg>
+{% endblock %}
+
+{% block content %}
+    {% if user.username != 'admin' and title in ['logs', 'users'] %}
+        <div id="landing">
+            <h1>Data Table page</h1>
+        </div>
+        <div class="max-div">
+            <p class="h1 rounded-pill bg-warning">ACCESS DENIED</p>
+            <p class="display-6">Admin permission required to view this data</p>
+        </div>
+    {% else %}
         <div id="landing">
             <h1>Data Table for {{ title }}</h1>
+            {% for msg in get_flashed_messages() %}
+                <h4 class="flash-msg">{{ msg }}</h4>
+            {% endfor %}
         </div>
         <div class="datatable">
             <table class="table-hover">
                 <tr id="schema-row">
-                    {% for title in schema %}
+                    {% for title in colnames %}
                     <th id="schema-cell">{{ title }}</th>
                     {%  endfor %}
                 </tr>
                 {% for row in table %}
                 <tr>
                     {% for cell in row %}
-                    <th>{{ cell }}</th>
+                        <th>{{ cell }}</th>
                     {% endfor %}
+                    {% if user.username == 'admin' and title == 'users' and row[2] != 'admin' %}
+                        <th class="text-center"><a href="{{ url_for('delete_user', user_id=row[0]) }}">
+                            {{ cell }}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-trash3-fill" viewBox="0 0 16 16">
+                                <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5"/>
+                            </svg>
+                        </a></th>
+                    {% endif %}
+
                 </tr>
                 {% endfor %}
             </table>
         </div>
-    {% else %}
-        <div id="landing">
-            <h1>Data Table page</h1>
-        </div>
-        <div class="max-div">
-            <p class="h1 rounded-pill bg-warning">SIMULATION IS NOT GENERATED</p>
-            <p class="display-6">generate the simulation to connect to the database</p>
+        <div class="landing">
+            {% if title in ['workers', 'customers', 'books'] %}
+                <h4 class="text-center">Insert new data</h4>
+                <form action="{{ url_for('insert_data', table_name=title) }}" method="post">
+                {% for name in colnames %}
+                    {% if loop.index != 1 %}
+                    <label for="field_{{ loop.index0 }}" class="sr-only">{{ name }}</label>
+                    <input type="text" name="field_{{ loop.index0 }}" placeholder="{{ name }}" class="form-control" required />
+                    {% endif %}
+                {% endfor %}
+                <button class="btn btn-outline-dark btn-block btn-landing" type="submit">Insert</button>
+                </form>
+            {% endif %}
         </div>
 
     {% endif %}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
+
+    <title>Login - simulation</title>
+    {{ bootstrap.load_css() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+</head>
+<body class="text-center">
+{% if not logged_in %}
+    <div class="landing landing-login" style="margin-top:5%">
+    <form class="form-signin" action="{{ url_for('login_page') }}" method="post">
+        <svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" fill="currentColor" class="bi bi-cpu" viewBox="0 0 16 16">
+            <path d="M5 0a.5.5 0 0 1 .5.5V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2A2.5 2.5 0 0 1 14 4.5h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14a2.5 2.5 0 0 1-2.5 2.5v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14A2.5 2.5 0 0 1 2 11.5H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2A2.5 2.5 0 0 1 4.5 2V.5A.5.5 0 0 1 5 0m-.5 3A1.5 1.5 0 0 0 3 4.5v7A1.5 1.5 0 0 0 4.5 13h7a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 11.5 3zM5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5zM6.5 6a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5z"/>
+        </svg>
+        <h1 class="display-5">Sign in to access the simulation</h1>
+        {% for msg in get_flashed_messages() %}
+            <h4 class="flash-msg">{{ msg }}</h4>
+        {% endfor %}
+        <label for="username" class="sr-only">Username</label>
+        <input type="text" name="username" placeholder="Username" class="form-control" required/>
+        <label for="password" class="sr-only">Password</label>
+        <input type="password" name="password" placeholder="Password" class="form-control" required />
+        <button class="btn btn-outline-dark btn-block btn-landing" type="submit">Sign in</button>
+    </form>
+    <h1 class="h4 register-label">Or register below</h1>
+    <a href="{{ url_for('register') }}" class="btn btn-secondary btn-block btn-landing">Register</a>
+    </div>
+{% else %}
+    <div class="landing" style="margin-top:5%">
+        <p class="display-4">You are already logged in</p>
+        <div class="button-div">
+            <a id="redirect-sim" type="submit" class="btn btn-dark btn-block btn-landing" href="{{ url_for('main') }}">Go to simulation setup</a>
+        </div>
+    </div>
+{% endif %}
+<p class="mt-5 mb-3 text-muted">&copy; 2024, Mateusz Tomczak</p>
+</body>
+</html>

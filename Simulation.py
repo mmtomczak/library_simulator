@@ -1,4 +1,4 @@
-import random
+import sqlite3
 from library_sys.system import LibrarySystem
 import numpy as np
 
@@ -13,7 +13,8 @@ class Simulation:
     Create object of a Simulation class
 
     Args:
-        db_path (str): path to the database with library data
+        db_cursor (sqlite3.Cursor): cursor object for library database
+        db_con (sqlite3.Connection): connection object for library database
         debug (bool, optional): create Simulation object in debug mode, defaults to False
         print_messages (bool, optional): print library_sys action messages, defaults to True
 
@@ -27,7 +28,8 @@ class Simulation:
 
     Attributes:
         system (LibrarySystem): library system object that the library_sys is based on
-        _db_path (str): path to the database used in LibrarySystem class instance
+        _db_cursor (sqlite3.Cursor): cursor object to library database
+        _db_con (sqlite3.Connection): connection object to library database
         books (list): list of books present in the library
         workers (list): list of workers present in the library
         customers (list): list of customers present in the library
@@ -35,15 +37,18 @@ class Simulation:
         long_pause (int): length of a long pause in the library_sys, defaults to 2 seconds
         short_pause (int): length of a short pause in the library_sys, defaults to 1 second
     """
-    def __init__(self, db_path: str = None, debug: bool = False, print_messages: bool = True, **kwargs):
-        self.system = LibrarySystem(database=db_path)
-        self._db_path = db_path
+    def __init__(self, db_cursor: sqlite3.Cursor = None, db_con: sqlite3.Connection = None, debug: bool = False,
+                 print_messages: bool = True, **kwargs):
+        self.system = LibrarySystem(db_cursor=db_cursor, db_con=db_con)
+        self._db_cursor = db_cursor
+        self._db_con = db_con
         self.books = self.system.books
         self.workers = self.system.workers
         self.customers = self.system.customers
         self.day = 1
         self.debug = debug
         self.print_messages = print_messages
+        self.return_days = kwargs.get("return_days")
         self.print_failures = kwargs.get("print_failures", False)
         self.failure_prob = kwargs.get("failure_prob", 0.5)
         self.action_probs = kwargs.get("action_probs", [1/len(ACTIONS) for _ in range(len(ACTIONS))])
@@ -54,12 +59,12 @@ class Simulation:
             self.long_pause = kwargs.get("long_pause", 2)
             self.short_pause = kwargs.get("short_pause", 1)
 
-    def run_and_return_messages(self, num_sub_actions: int = 1):
+    def run_and_return_messages(self, num_sub_iterations: int = 1):
         """
         Runs a simulation and collects response messages for one day with number of provided actions
 
         Args:
-            num_sub_actions (int): Numbers of actions that are to be performed during one day (one iteration)
+            num_sub_iterations (int): Numbers of sub-iterations that are to be performed during one day (one iteration)
 
         Returns:
             List of all messages that were a result of actions performed during one day, includes all break lines for
@@ -69,7 +74,7 @@ class Simulation:
         try:
             # Get iteration break line
             results.append(self.get_iteration_start())
-            for _ in range(num_sub_actions):
+            for _ in range(num_sub_iterations):
                 # Get action messages
                 for action in self.get_action_messages():
                     results.append(action)
@@ -92,56 +97,59 @@ class Simulation:
 
     def get_action_messages(self):
         """
-        Returns a list of all messages for sub-actions that were a result of one action in simulation. Determines if
-            a sub-action was successful (resulted in a new message added) or unsuccessful (sub-action was skipped due
-            to a random choice). Number of sub-actions is determined by the count of library workers - each worker has
-            a chance to perform a sub-action, determined by failure_prob attribute, during one action.
+        Returns a list of all messages for actions that were a result of one sub-iteration in simulation. Determines if
+            the action was successful (resulted in a new message added) or unsuccessful (action was skipped due
+            to a random choice). Number of actions is determined by the count of library workers - each worker has
+            a chance to perform the action, determined by failure_prob attribute, during one sub-iteration.
 
         Returns:
             List of messages, does NOT include break lines.
         """
         messages = []
-        # Get a number of sub-actions
-        num_subactions = len(self.workers)
+
         for worker in self.workers:
             # Set sub-action complete as False - sub-action is performed
-            subaction_complete = False
+            action_complete = False
 
             if not np.random.choice([0, 1], p=[self.failure_prob, 1 - self.failure_prob]):
-                # If failure_prob determined that sub-action is failed set subaction_complete to True
-                subaction_complete = True
+                # If failure_prob determined that sub-action is failed set action_complete to True
+                action_complete = True
 
-            while not subaction_complete:
-                # Choose random customer for sub-action
-                action_customer = random.choice(self.customers)
-                # Choose random book for sub-action
-                action_book = random.choice(self.books)
-                # Choose random library action that will be performed in sub-action
+            while not action_complete:
+                # Choose random customer for action
+                action_customer = np.random.choice(self.customers)
+                # Choose random book for action
+                action_book = np.random.choice(self.books)
+                # Choose random library action function that will be performed during action
                 action = np.random.choice(ACTIONS, p=self.action_probs)
-                # Get result and performed action (performed action may differ from possible library actions)
+                # Get result and performed action function (performed action function may differ from possible
+                # library actions as the final name of the action is determined in perform_action method)
                 result, action = self.perform_action(book=action_book,
                                                      customer=action_customer,
                                                      action=action,
                                                      worker=worker)
 
-                if not result and action == "return_book" and type(result) != float:
-                    # if result is false check if action was 'return_book' - in this case result may be of a float type
-                    # if action was not a 'return_book' and result was not of a float type then the action was failed -
-                    # repeat the loop
+                if not result and action == "return_book" and not isinstance(result, float):
+                    # if result is false check if action function was 'return_book' - in this case result may be of a
+                    # float type
+                    # if action function was not a 'return_book' and result was not of a float type then the action was
+                    # failed - repeat the loop
                     if self.print_failures:
+                        # Failure message
                         print("ACTION FAIL FIRST STEP")
-                elif not result and action != "return_book" and type(result) != float:
+                elif not result and action != "return_book" and not isinstance(result, float):
                     if self.print_failures:
+                        # Failure message
                         print("ACTION FAIL SECOND STEP")
                 else:
-                    # if sub-action was successful append message
+                    # if action was successful append message
                     messages.append(self.get_result(action=action,
                                                     book=action_book,
                                                     customer=action_customer,
                                                     worker=worker,
                                                     result=result))
-                    # indicate sub-action completion
-                    subaction_complete = True
+                    # indicate action completion
+                    action_complete = True
         return messages
 
     def perform_action(self, book, customer, action, worker):
@@ -162,6 +170,20 @@ class Simulation:
         action_func = getattr(self.system, action)
 
         try:
+            # if performed action is 'return_book'
+            if action_func == "return_book":
+                # if customer has rented books, with 80% chance system can set earliest rented customer book as current
+                # action book - it is done to make simulation more dynamic
+                if customer.rented_books and np.random.choice([1, 0], p=[0.8, 0.2]):
+                    book = customer.rented_books[0]
+
+            # if performed action is 'remove from queue'
+            if action_func == "remove_from_queue":
+                # if book has not empty queue, with 70% chance system can set random person from queue as current
+                # action customer - it is done to make simulation more dynamic
+                if book.queue and np.random.choice([1, 0], p=[0.7, 0.3]):
+                    customer = np.random.choice(book.queue)
+
             # Get action result
             result = action_func(book_id=book.id, customer_id=customer.id, worker_id=worker.id)
         except ValueError:
@@ -185,7 +207,7 @@ class Simulation:
 
     def try_auto_rent(self, book, worker):
         """
-        Checks and if possible automatically rents selected book to the first customer in queue
+        Checks and, if possible, automatically rents selected book to the first customer in queue.
 
         Args:
             book (Book): Book to be automatically rented
@@ -194,9 +216,52 @@ class Simulation:
         Returns:
             True if book was automatically rented, False otherwise
         """
+        # if book is not rented and has not empty queue
         if not book.is_rented() and book.queue:
-            return self.system.rent_book(customer_id=book.queue[0].id, book_id=book.id, worker_id=worker.id)
+            # rent book to the first customer in the book queue
+            return self.system.rent_book(customer_id=book.queue[0].id, book_id=book.id, worker_id=worker.id,
+                                         return_days=self.return_days)
         return False
+
+    def insert_data(self, table_name, **kwargs):
+        """
+        Inserts new data into given table. Supports inserts only to customers, workers or books tables
+
+        Args:
+            table_name (str): Name of the table
+
+        Keyword Args:
+            name (str): Name (for customers or workers table)
+            position (str): Position (for workers table)
+            title (str): Title of the book (for books table)
+            author (str): Author of the book (for books table)
+            isbn (str): ISBN of the book (for books table)
+            publisher (str): Publisher of the books (for books table)
+            year_published (int): Year of book publication (for books table)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            if table_name == "customers":
+                self.system.add_customer(name=kwargs.get("name"))
+            elif table_name == "workers":
+                self.system.add_worker(name=kwargs.get("name"),
+                                       position=kwargs.get("position"))
+            elif table_name == "books":
+                self.system.add_book(title=kwargs.get("title"),
+                                     author=kwargs.get("author"),
+                                     isbn=kwargs.get("isbn"),
+                                     publisher=kwargs.get("publisher"),
+                                     year_published=kwargs.get("year_published"))
+            else:
+                # If incorrect table name specified return False
+                return False
+            # Return True if successful
+            return True
+        except KeyError:
+            # When encountering KeyError return False
+            return False
 
     def get_iteration_start(self):
         """
@@ -325,20 +390,18 @@ class Simulation:
         Clears the data in the library_sys and creates new instance of LibrarySimulation class
 
         Keyword Args:
-            db_path (str): Path to the database containing library data, defaults to None
+            db_cursor (sqlite3.Cursor): cursor object to library database
+            db_con (sqlite3.Connection): connection object to the library database
         """
         del self.system
-        self.system = LibrarySystem(db_path=kwargs.get("db_path", None))
+        self.system = LibrarySystem(db_cursor=kwargs.get("db_cursor", None), db_con=kwargs.get("db_con", None))
         self.books = []
         self.workers = []
         self.customers = []
 
-    def generate_simulation(self, **kwargs):
+    def generate_simulation(self):
         """
         Generates a new simulation by loading a library data from database. Prints messages according to a result.
-
-        Keyword Args:
-             db_path (str): Path to a library data database location
         """
         try:
             self.system.load_database()
@@ -346,4 +409,4 @@ class Simulation:
         except AttributeError as err:
             print(f"\n\n\tIncorrect attributes in library system parameters file\n\t"
                   f"Creating library system with no database connection\n\n{err}\n\n")
-            self._clear_simulation(db_path=self._db_path)
+            self._clear_simulation(db_cursor=self._db_cursor, db_con=self._db_con)

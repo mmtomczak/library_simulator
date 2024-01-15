@@ -1,7 +1,6 @@
 from library_sys.book import Book
 from library_sys.person import Worker, Customer
 import datetime
-import sqlite3
 
 
 class LibrarySystem:
@@ -9,7 +8,6 @@ class LibrarySystem:
 
     Keyword Args:
         fee_rate (int): Book overtime return fee rate. Defaults to 0.5
-        database (str): Path to the database containing library data, defaults to None
 
     Attributes:
         _books (list of Book): List of all books in the library
@@ -31,18 +29,8 @@ class LibrarySystem:
         self._new_customer_id = 0  # next in line ID number for customer
         self.date = datetime.datetime.now()
         self.fee_rate = kwargs.get("fee_rate", 0.5)
-        self._db_connection = None
-        self._cursor = None
-        self._connect_to_database(kwargs.get("database", None))
-
-    def __del__(self):
-        """
-        Deletes the LibrarySystem class instance.
-        """
-        # check if there is a database cursor
-        if self._cursor:
-            # close the database
-            self._close_database()
+        self._db_connection = kwargs.get("db_con", None)
+        self._cursor = kwargs.get("db_cursor", None)
 
     @property
     def books(self):
@@ -58,28 +46,6 @@ class LibrarySystem:
     def customers(self):
         """list of Customer: Returns list of all customers of the library"""
         return self._customers
-
-    def _connect_to_database(self, db_path):
-        """
-        Connects to a SQLite database and sets a database cursor.
-
-        Args:
-            db_path (str): Path to the database
-
-        Returns:
-            True if successful, False otherwise
-        """
-        if db_path is None:
-            return False
-        self._db_connection = sqlite3.connect(db_path, check_same_thread=False)
-        self._cursor = self._db_connection.cursor()
-        return True
-
-    def _close_database(self):
-        """
-        Closes the database connection.
-        """
-        self._db_connection.close()
 
     def add_book(self, title: str, author: str, isbn=None, publisher=None, year_published=None, book_id: int = None,
                  database_load: bool = False):
@@ -98,13 +64,16 @@ class LibrarySystem:
         """
         if book_id is None:
             # if book id is not provided get next in line id for book
-            book_id = getattr(self, "return_and_update_id")(self._new_book_id, "_new_book_id")
+            book_id = self.return_and_update_id(self._new_book_id, "_new_book_id")
 
         if not database_load:
             if self._cursor:
                 query = (book_id, title, author, isbn, publisher, year_published)
+
+                # Inserts new book data into books table
                 self._cursor.execute(
-                    f"INSERT INTO books(book_id, title, author, isbn, publisher, year_published) VALUES{query}"
+                    f"INSERT INTO books(book_id, title, author, isbn, publisher, year_published) VALUES(?,?,?,?,?,?)",
+                    query
                 )
                 self._db_connection.commit()
 
@@ -130,8 +99,10 @@ class LibrarySystem:
         if not database_load:
             if self._cursor:
                 query = (worker_id, name, position)
+
+                # Inserts new worker data into the workers table
                 self._cursor.execute(
-                    f"INSERT INTO workers(worker_id, name, position) VALUES{query}"
+                    f"INSERT INTO workers(worker_id, name, position) VALUES(?,?,?)", query
                 )
                 self._db_connection.commit()
 
@@ -153,8 +124,10 @@ class LibrarySystem:
         if not database_load:
             if self._cursor:
                 query = (customer_id, name)
+
+                # Inserts new customer data into customers table
                 self._cursor.execute(
-                    f"INSERT INTO customers(customer_id, name) VALUES{query}"
+                    f"INSERT INTO customers(customer_id, name) VALUES(?,?)", query
                 )
                 self._db_connection.commit()
 
@@ -172,6 +145,8 @@ class LibrarySystem:
             True if successful, else False
         """
         if self._cursor:
+
+            # Deletes book with given book_id from books table
             self._cursor.execute(f"DELETE FROM books WHERE book_id={book_id}")
             self._db_connection.commit()
 
@@ -192,6 +167,8 @@ class LibrarySystem:
             True if successful, else False
         """
         if self._cursor:
+
+            # Deletes worker with given worker_id from workers table
             self._cursor.execute(f"DELETE FROM workers WHERE worker_id={worker_id}")
             self._db_connection.commit()
 
@@ -212,6 +189,8 @@ class LibrarySystem:
             True if successful, else False
         """
         if self._cursor:
+
+            # Deletes customer with given customer_id from customers table
             self._cursor.execute(f"DELETE FROM customers WHERE customer_id={customer_id}")
             self._db_connection.commit()
 
@@ -221,24 +200,25 @@ class LibrarySystem:
                 return True
         return False
 
-    def return_and_update_id(self, id: int, kind: str):
+    def return_and_update_id(self, item_id: int, kind: str):
         """
         Returns provided ID and sets new ID in line
 
         Args:
-            id (int): ID to be returned and updated
+            item_id (int): ID to be returned and updated
             kind (str): kind of ID to be updated
 
         Returns:
             Provided ID int value
         """
         # Create new next in line ID
-        new_id = id + 1
+        new_id = item_id + 1
         # Update ID in the system
         setattr(self, kind, new_id)
-        return id
+        return item_id
 
-    def rent_book(self, customer_id: int, book_id: int, worker_id: int, return_time=None, database_load: bool = False):
+    def rent_book(self, customer_id: int, book_id: int, worker_id: int, return_time=None, database_load: bool = False,
+                  return_days: int = 30):
         """
         Rents a book to a customer.
 
@@ -248,6 +228,7 @@ class LibrarySystem:
             worker_id (int): ID of the worker renting the book
             return_time (optional): book return date, used when data is loaded from database, defaults to None
             database_load (bool, optional): set to True if data is not to be added to the database
+            return_days (int, optional): number of days the book is to be rented for, defaults to 30
 
         Returns:
             True if successful, False otherwise
@@ -265,13 +246,15 @@ class LibrarySystem:
             return False
 
         if not return_time:
-            return_time = self.date + datetime.timedelta(days=30)
+            return_time = self.date + datetime.timedelta(days=return_days)
 
         if not database_load:
             if self._cursor:
+
+                # Inserts new book rent data - book_id, customer_id, worker_id and return time, into rents table
                 self._cursor.execute(
                     f"""INSERT INTO rents(book_id, customer_id, worker_id, return_date) 
-                        VALUES({book_id}, {customer_id}, {worker_id}, '{return_time}')"""
+                        VALUES({book_id}, {customer_id}, {worker_id}, '{return_time.strftime('%Y-%m-%d')}')"""
                 )
                 self._db_connection.commit()
         book.rent_book(customer, return_time)
@@ -309,6 +292,8 @@ class LibrarySystem:
 
         if not database_load:
             if self._cursor:
+
+                # Adds new queue data of book_id, customer_id and worker_id into queues table
                 self._cursor.execute(
                     f"""INSERT INTO queues(book_id, customer_id, worker_id) 
                         VALUES({book_id}, {customer_id}, {worker_id})"""
@@ -325,7 +310,6 @@ class LibrarySystem:
         Args:
             customer_id (int): ID of a customer that is to be removed from book queue
             book_id (int): ID of a book from whose queue customer is to be remover
-            **kwargs: Keyword args
 
         Returns:
             True if successful, False otherwise
@@ -337,6 +321,8 @@ class LibrarySystem:
             book.queue.remove(customer)
 
             if self._cursor:
+
+                # Removes customer with given customer_id waiting for book with id of book_id from queues table
                 self._cursor.execute(
                     f"DELETE FROM queues WHERE customer_id={customer_id} AND book_id={book_id}"
                 )
@@ -352,19 +338,22 @@ class LibrarySystem:
         Args:
             customer_id (int): ID of a customer that returns the book
             book_id (int): ID of a book that is to be returned
-            **kwargs: Keyword args
 
         Returns:
             float: Fee value to be paid for late return
         """
+
         book = self.get_book_by_id(book_id)
         customer = self.get_customer_by_id(customer_id)
+
         # if provided book is not rented by provided customer raise ValueError
         if book not in customer.rented_books:
             raise ValueError
         fee = self.calculate_fee(book)
 
         if self._cursor:
+
+            # Removes customer with given customer_id from rents table after returning book with given book_id
             self._cursor.execute(
                 f"DELETE FROM rents WHERE customer_id={customer_id} AND book_id={book_id}"
             )
@@ -402,48 +391,48 @@ class LibrarySystem:
         book = self.get_book_by_id(book_id)
         return book.return_date
 
-    def get_book_by_id(self, id: int):
+    def get_book_by_id(self, book_id: int):
         """
         Returns Book class instance of a given ID
 
         Args:
-            id (int): ID of a book
+            book_id (int): ID of a book
 
         Returns:
             Book class instance if found ID match, None otherwise
         """
         for book in self._books:
-            if book.id == id:
+            if book.id == book_id:
                 return book
         return None
 
-    def get_customer_by_id(self, id: int):
+    def get_customer_by_id(self, customer_id: int):
         """
         Returns Customer class instance of a given ID
 
         Args:
-            id (int): ID of a customer
+            customer_id (int): ID of a customer
 
         Returns:
             Customer class instance if found ID match, None otherwise
         """
         for customer in self._customers:
-            if customer.id == id:
+            if customer.id == customer_id:
                 return customer
         return None
 
-    def get_worker_by_id(self, id: int):
+    def get_worker_by_id(self, worker_id: int):
         """
         Returns Worker class instance of a given ID
 
         Args:
-            id (int): ID of a worker
+            worker_id (int): ID of a worker
 
         Returns:
             Worker class instance if found ID match, None otherwise
         """
         for worker in self._workers:
-            if worker.id == id:
+            if worker.id == worker_id:
                 return worker
         return None
 
@@ -489,8 +478,8 @@ class LibrarySystem:
 
     def load_database(self, rent_if_empty: bool = False):
         """
-        Loads data from external SQL database. Database must contain books, workers, customers, rents and queues tables.
-        Data may only be loaded if the system does not contain any customer, worker or book data.
+        Loads data from external SQL database. Database must contain books, workers, customers, rents and queues
+        tables. Data may only be loaded if the system does not contain any customer, worker or book data.
 
         Args:
             rent_if_empty (bool, optional): Sets if book is automatically rented when a customer is added to an empty
@@ -526,7 +515,7 @@ class LibrarySystem:
         result_rents = self._cursor.execute("SELECT * FROM rents")
         for row in result_rents:
             self.rent_book(customer_id=row[2], book_id=row[1], worker_id=row[3],
-                           return_time=datetime.datetime.strptime(row[4], "%Y-%m-%d %H:%M:%S.%f"),
+                           return_time=datetime.datetime.strptime(row[4], "%Y-%m-%d"),
                            database_load=True)
 
         # get all queues data from the database

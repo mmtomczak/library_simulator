@@ -33,8 +33,8 @@ TEST_DATASET = {
             (1103, 2205, 3300)
         ],
     "rents": [
-            (2200, 1101, 3300, datetime.datetime.now() + datetime.timedelta(30)),
-            (2202, 1102, 3301, datetime.datetime.now() - datetime.timedelta(2))
+            (2200, 1101, 3300, (datetime.datetime.now() + datetime.timedelta(30)).strftime('%Y-%m-%d')),
+            (2202, 1102, 3301, (datetime.datetime.now() + datetime.timedelta(2)).strftime('%Y-%m-%d'))
         ]
 }
 
@@ -50,16 +50,20 @@ def library_simple():
 
 @pytest.fixture
 def library_database():
-    DatabaseGenerator(TEST_DB_PATH, test_db=True, dataset=TEST_DATASET)
-    sys = LibrarySystem(database=TEST_DB_PATH)
+    db = sqlite3.connect(TEST_DB_PATH)
+    cur = db.cursor()
+    DatabaseGenerator(db=db, cur=cur, test_db=True, dataset=TEST_DATASET)
+    sys = LibrarySystem(db_con=db, db_cursor=cur)
     sys.load_database(rent_if_empty=False)
     return sys
 
 
 @pytest.fixture
 def library_database_auto_rent():
-    DatabaseGenerator(TEST_DB_PATH, test_db=True, dataset=TEST_DATASET)
-    sys = LibrarySystem(database=TEST_DB_PATH)
+    db = sqlite3.connect(TEST_DB_PATH)
+    cur = db.cursor()
+    DatabaseGenerator(db=db, cur=cur, test_db=True, dataset=TEST_DATASET)
+    sys = LibrarySystem(db_con=db, db_cursor=cur)
     sys.load_database(rent_if_empty=True)
     return sys
 # NO DATABASE LIBRARY TESTS
@@ -227,12 +231,6 @@ def test_customers_db(library_database):
             and len(library_database.customers) == len(TEST_DATASET["customers_data"]))
 
 
-def test_close_database_db(library_database):
-    library_database._close_database()
-    with pytest.raises(sqlite3.ProgrammingError) as err:
-        library_database._cursor.execute("SELECT * FROM books")
-
-
 def test_add_book_db(library_database):
     library_database.add_book(title="titlex", author="authorx", isbn="isbnx", publisher="publisher", year_published=999)
     assert ((len(library_database.books) == len(TEST_DATASET["books_data"]) + 1
@@ -323,6 +321,7 @@ def test_return_book_db_successful_no_fee(library_database):
 
 
 def test_return_book_db_successful_fee(library_database):
+    library_database.update_date(40)
     result = library_database.return_book(customer_id=1102, book_id=2202)
     assert (isinstance(result, float) and result > 0 and
             len(library_database._cursor.execute("SELECT * FROM rents").fetchall()) == len(TEST_DATASET["rents"]) - 1)

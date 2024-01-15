@@ -4,14 +4,20 @@
 Simulation
 {% endblock %}
 
+{% block navbar_items %}
+    {{ super() }}
+    <a href="#" class="grey-out">Logged as {{ user.name }}</a>
+{% endblock %}
+
+{% block navbar_main %}
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-left" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M11.854 3.646a.5.5 0 0 1 0 .708L8.207 8l3.647 3.646a.5.5 0 0 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 0 1 .708 0M4.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 1 0v-13a.5.5 0 0 0-.5-.5"/>
+    </svg>
+{% endblock %}
+
 {% block content %}
     <div id="landing">
-    <p class="h5">SIMULATION</p>
-    <div class="intro">
-        <p class="text-indent">Every iteration in the simulation is regarded to as a day. After each simulation internal library system date is updated by
-            one day. For each day there can be performed several sub-iterations. Sub-iteration makes it possible for every worker to perform (or fail) action.
-        </p>
-    </div>
+    <p class="display-4">Library Simulation</p>
         <div id="setup">
             <div class="intro">
                 <p class="h6">Setup</p>

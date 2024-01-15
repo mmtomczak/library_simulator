@@ -145,9 +145,10 @@ class DatabaseGenerator:
     Creates or clears SQLite database in the declared location. Inserts supplied data into the database.
 
     Args:
-        db_path (str): location of the database/where database is to be created
+        cur (sqlite3.Cursor): cursor object to the database
+        db (sqlite3.Connection): connection object to the database
         test_db (bool): sets the generator into the test mode, defaults to False
-        dataset: dataset that is to be inserted into the database
+        dataset: sample dataset that is to be inserted into the database
 
     Keyword Args:
         clear_data (bool): defines if data in the dataset is to be cleared, defaults to True
@@ -156,29 +157,41 @@ class DatabaseGenerator:
         insert_sample (bool): defines if sample data is to be inserted into the database, defaults to True
 
     Attributes:
-        path (str): path to the database
+        cur (sqlite3.Cursor): cursor object to the database
+        db (sqlite3.Connection): connection object to the database
         dataset: dataset that is to be inserted into the database
     """
-    def __init__(self, db_path: str, test_db: bool = False, dataset=None, **kwargs):
+    def __init__(self, cur, db, test_db: bool = False, dataset=None, **kwargs):
+        # if no dataset is specified set to default
         if dataset is None:
             dataset = DEFAULT_SET
 
-        self.path = db_path
+        self.cur = cur
+        self.db = db
         self.dataset = dataset
+        # If not instructed to omit, clear data from tables
         if kwargs.get("clear_data", True):
             try:
+                # Try to clear data from tables
                 self.clear_data()
             except sqlite3.OperationalError:
+                # In case of error - pass
                 pass
+        # If not instructed to omit, remove tables
         if kwargs.get("drop_tables", True):
             try:
+                # Try to remove tables
                 self.drop_tables()
             except sqlite3.OperationalError:
+                # In case of error - pass
                 pass
+        # If not instructed to omit, generate new database
         if kwargs.get("generate", True):
             self.generate_database()
+        # If not instructed to omit, insert sample data
         if kwargs.get("insert_sample", True):
             self.insert_sample_data()
+        # If this is a test database insert test scenarios
         if test_db:
             self.insert_test_scenarios()
 
@@ -186,67 +199,82 @@ class DatabaseGenerator:
         """
         Inserts sample data into the database
         """
-        con = sqlite3.connect(self.path)
-        cur = con.cursor()
+        con = self.db
+        cur = self.cur
         try:
+            # Insert book data (book_id, title, author, isbn, publisher, year_published) from list into books table
             cur.executemany("""
                             INSERT INTO books(book_id, title, author, isbn, publisher, year_published) 
                             VALUES(?, ?, ?, ?, ?, ?)
                             """,
                             self.dataset["books_data"])
 
+            # Insert worker data (worker_id, name, position) from list into workers table
             cur.executemany("INSERT INTO workers(worker_id, name, position) VALUES(?, ?, ?)",
                             self.dataset["workers_data"])
 
+            # Insert customer data (customer_id, name) from list into customers table
             cur.executemany("INSERT INTO customers(customer_id, name) VALUES(?, ?)",
                             self.dataset["customers_data"])
         except sqlite3.IntegrityError as err:
+            # In case of error clear the database
             print(f"\nERROR LOADING DATABASE\n{err}\nCLEARING DATA")
             self.clear_data()
         con.commit()
-        con.close()
 
     def generate_database(self):
         """
         Generates the database
         """
-        con = sqlite3.connect(self.path)
-        cur = con.cursor()
+        con = self.db
+        cur = self.cur
 
+        # Creates table books with books' data and book_id as primary key
         cur.execute('''
         CREATE TABLE books(
             book_id INTEGER NOT NULL PRIMARY KEY,
-            title TEXT NOT NULL,
-            author TEXT,
-            isbn TEXT,
-            publisher TEXT,
+            title VARCHAR(30) NOT NULL,
+            author VARCHAR(30) NOT NULL,
+            isbn VARCHAR(30),
+            publisher VARCHAR(30),
             year_published INTEGER)
         ''')
 
+        # Creates workers table with workers' data and worker_id as primary key
         cur.execute('''
         CREATE TABLE workers(
             worker_id INTEGER NOT NULL PRIMARY KEY ,
-            name TEXT NOT NULL,
-            position TEXT)
+            name VARCHAR(30) NOT NULL,
+            position VARCHAR(30))
         ''')
 
+        # Creates customers table with customers' data and customer_id as primary key
         cur.execute('''
         CREATE TABLE customers(
             customer_id INTEGER NOT NULL PRIMARY KEY ,
-            name TEXT NOT NULL)
+            name VARCHAR(30) NOT NULL)
         ''')
 
+        # Creates rents table with each rent data and rent_id as primary key, foreign keys:
+        # book_id - references book_id column from books table
+        # customer_id - references customer_id column from customers table
+        # worker_id - references worker_id column from workers table
         cur.execute('''
         CREATE TABLE rents(
             rent_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
             book_id INTEGER NOT NULL,
             customer_id INTEGER NOT NULL,
             worker_id INTEGER NOT NULL,
-            return_date TEXT NOT NULL,
+            return_date VARCHAR(50) NOT NULL,
             FOREIGN KEY (book_id) REFERENCES books(book_id),
-            FOREIGN KEY (customer_id) REFERENCES customers(customer_id))
+            FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+            FOREIGN KEY (worker_id) REFERENCES workers(worker_id))
             ''')
 
+        # Creates queues table with each queue entry data and entry_id as primary key, foreign keys:
+        # book_id - references book_id column from books table
+        # customer_id - references customer_id column from customers table
+        # worker_id - references worker_id column from workers table
         cur.execute('''
             CREATE TABLE queues(
                 entry_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -254,55 +282,112 @@ class DatabaseGenerator:
                 worker_id INTEGER NOT NULL,
                 customer_id INTEGER NOT NULL,
                 FOREIGN KEY (book_id) REFERENCES books(book_id),
-                FOREIGN KEY (customer_id) REFERENCES customers(customer_id))
+                FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+                FOREIGN KEY (worker_id) REFERENCES workers(worker_id))
                 ''')
 
+        # Creates logs table with acts as a data table for triggers activated after deleting rows from queues table
+        # (action = 'queue_remove') or rents table (action = 'book_return') and log_id as primary_key, foreign keys:
+        # book_id - references book_id column from books table
+        # customer_id - references customer_id column from customers table
+        # worker_id - references worker_id column from workers table
+        cur.execute('''
+            CREATE TABLE logs(
+            log_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            action VARCHAR(20) NOT NULL,
+            customer_id INTEGER NOT NULL,
+            book_id INTEGER NOT NULL,
+            worker_id INTEGER NOT NULL,
+            FOREIGN KEY (book_id) REFERENCES books(book_id),
+            FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+            FOREIGN KEY (worker_id) REFERENCES workers(worker_id))
+        ''')
+
+        # Creates trigger rentReturn activated after deleting row from rents table (indicating returned book)
+        cur.execute('''
+            CREATE TRIGGER rentReturn AFTER DELETE ON rents 
+            BEGIN INSERT INTO logs(action, customer_id, book_id, worker_id) 
+            VALUES('book_return', old.customer_id, old.book_id, old.worker_id); END;
+        ''')
+
+        # Creates trigger queueRemove activated after deleting row from queues table (indicating that someone resigned
+        # from waiting for a given book)
+        cur.execute('''
+            CREATE TRIGGER queueRemove AFTER DELETE ON queues
+            BEGIN INSERT INTO logs(action, customer_id, book_id, worker_id)
+            VALUES('queue_remove', old.customer_id, old.book_id, old.worker_id); END;
+        ''')
+
+        # Creates index named booksIndex for books' table columns title and author to optimize the table due to the
+        # possibility of having more than one copies of given book
+        cur.execute('''
+            CREATE INDEX booksIndex ON books(title, author)
+        ''')
+
         con.commit()
-        con.close()
 
     def clear_data(self):
         """
         Clears the data from the database
         """
-        con = sqlite3.connect(self.path)
-        cur = con.cursor()
+        con = self.db
+        cur = self.cur
 
+        # Delete rows from books table
         cur.execute("DELETE FROM books")
+        # Delete rows from workers table
         cur.execute("DELETE FROM workers")
+        # Delete rows from customers table
         cur.execute("DELETE FROM customers")
+        # Delete rows from rents table
         cur.execute("DELETE FROM rents")
+        # Delete rows from queues table
         cur.execute("DELETE FROM queues")
+        # Delete rows from logs table
+        cur.execute("DELETE FROM logs")
 
         con.commit()
-        con.close()
 
     def drop_tables(self):
         """
         Drops the tables from the database
         """
-        con = sqlite3.connect(self.path)
-        cur = con.cursor()
+        con = self.db
+        cur = self.cur
 
+        # Delete books table
         cur.execute("DROP TABLE books")
+        # Delete workers table
         cur.execute("DROP TABLE workers")
+        # Delete customers table
         cur.execute("DROP TABLE customers")
+        # Delete rents table
         cur.execute("DROP TABLE rents")
+        # Delete queues table
         cur.execute("DROP TABLE queues")
+        # Delete logs table
+        cur.execute("DROP TABLE logs")
+        # Deletes trigger rentReturn, if exists
+        cur.execute("DROP TRIGGER IF EXISTS rentReturn")
+        # Deletes trigger queueRemove, if exists
+        cur.execute("DROP TRIGGER IF EXISTS queueRemove")
+        # Deletes index booksIndex if exists
+        cur.execute("DROP INDEX IF EXISTS booksIndex")
 
         con.commit()
-        con.close()
 
     def insert_test_scenarios(self):
         """
         Inserts test scenarios into the database
         """
-        con = sqlite3.connect(self.path)
-        cur = con.cursor()
-
+        con = self.db
+        cur = self.cur
+        # Inserts every item from list as a test scenarios into queues dataset
         cur.executemany("INSERT INTO queues(customer_id, book_id, worker_id) VALUES(?,?,?)", self.dataset["queues"])
-        cur.executemany("INSERT INTO rents(book_id, customer_id, worker_id, return_date) VALUES(?,?,?, ?)", self.dataset["rents"])
+        # Inserts every item from list as a test scenarios into rents dataset
+        cur.executemany("INSERT INTO rents(book_id, customer_id, worker_id, return_date) VALUES(?,?,?, ?)",
+                        self.dataset["rents"])
 
         con.commit()
-        con.close()
 
 

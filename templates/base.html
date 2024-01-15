@@ -11,7 +11,12 @@
     {% endblock %}
 </head>
 <header class="navbar">
-    <a href="{{ url_for('main') }}" id="return-main">Library simulation</a>
+{% block navbar_items %}
+    <a href="{{ url_for('main') }}" id="return-main">
+        {% block navbar_main %}{% endblock %}
+        Library simulation
+    </a>
+{% endblock %}
 </header>
 <body>
     {% block content %} {% endblock %}

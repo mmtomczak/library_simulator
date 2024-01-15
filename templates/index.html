@@ -4,9 +4,25 @@
     Simulation
 {% endblock %}
 
+{% block navbar_items %}
+    {{ super() }}
+    <a href="#"></a>
+    <a href="#"></a>
+    <a href="#"></a>
+    <a href="#" class="grey-out">Welcome, {{ user.name }}</a>
+    <a href="#"></a>
+    <a href="#"></a>
+    <a href="{{ url_for('delete_account') }}" class="logout-btn danger">Delete account</a>
+    <a href="{{ url_for('logout') }}" class="logout-btn">Log out</a>
+{% endblock %}
+
+
 {% block content %}
     {{ super() }}
     <div id="landing">
+        {% for msg in get_flashed_messages() %}
+            <h4 class="flash-msg">{{ msg }}</h4>
+        {% endfor %}
         <p class="display-4">Python and SQL - simulation of the library system</p>
         <div class="intro">
             <p class="h6">Introduction</p>
@@ -25,6 +41,9 @@
             <p class="text-indent">By checking the 'Reset database' checkbox the database connected to the simulation will be wiped - only data regarding customers, workers and books will remain.</p>
             <p class="text-indent">You can always come back to this page by clicking 'Library simulation' text in upper left corner. Note that during the simulation this button will be disabled. It is
             not recommended to leave the simulation page during working as running it again may display new messages as well as messages still left in the queue from the initial run.</p>
+            <p class="text-indent">On the next page you will need to specify the number of iterations and sub-iterations. Every iteration in the simulation is regarded to as a day. After each simulation internal library system date is updated by
+            one day. For each day there can be performed several sub-iterations. Sub-iteration makes it possible for every worker to perform (or fail) action.
+        </p>
             <p>When ready, click the 'Generate simulation' button to go to the simulation page.</p>
         </div>
         <hr />
@@ -67,6 +86,10 @@
                     <li><a href="{{ url_for('tables', table_name='books') }}" class="dropdown-item">Books</a></li>
                     <li><a href="{{ url_for('tables', table_name='queues') }}" class="dropdown-item">Queues</a></li>
                     <li><a href="{{ url_for('tables', table_name='rents') }}" class="dropdown-item">Rents</a></li>
+                    {% if user.username == 'admin' %}
+                    <li><a href="{{ url_for('tables', table_name='logs') }}" class="dropdown-item">Logs</a></li>
+                    <li><a href="{{ url_for('tables', table_name='users') }}" class="dropdown-item">Users</a></li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
