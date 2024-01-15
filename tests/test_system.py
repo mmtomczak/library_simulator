@@ -361,10 +361,10 @@ def test_get_book_due_date_db_not_rented(library_database):
 
 def test_update_date_db(library_database):
     library_database.update_date()
-    assert library_database.date == datetime.datetime.now()
+    assert library_database.date.strftime("%d-%m-%Y %T") == datetime.datetime.now().strftime("%d-%m-%Y %T")
 
 
 def test_update_date_db_delta(library_database):
     initial_date = library_database.date
     library_database.update_date(20)
-    assert library_database.date == (initial_date + datetime.timedelta(days=20))
+    assert library_database.date == initial_date + datetime.timedelta(days=20)
