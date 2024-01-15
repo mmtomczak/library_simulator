@@ -60,7 +60,7 @@ def main():
     """
     if request.method == "POST":
         if request.form.get('data-reset'):
-            DatabaseGenerator(cur, db, db_cursor=cur, db_con=db)
+            DatabaseGenerator(cur=cur, db=db)
         # redirect to simulation page
         # if POST method is used create new simulation with selected failure_prob
         global sim

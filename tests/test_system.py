@@ -160,7 +160,7 @@ def test_is_book_rented(library_simple):
 
 def test_get_book_due_date(library_simple):
     library_simple.rent_book(0, 0, 0)
-    assert type(library_simple.books[0].return_date) == datetime.datetime
+    assert isinstance(library_simple.books[0].return_date, datetime.datetime)
 
 
 def test_get_book_by_id(library_simple):
@@ -267,7 +267,8 @@ def test_remove_worker_db(library_database):
 def test_remove_customer_db(library_database):
     library_database.remove_customer(customer_id=TEST_DATASET["customers_data"][0][0])
     assert (len(library_database.customers) == len(TEST_DATASET["customers_data"]) - 1 and
-            library_database._cursor.execute("SELECT * FROM customers").fetchall()[0] == TEST_DATASET["customers_data"][1])
+            library_database._cursor.execute("SELECT * FROM customers").fetchall()[0] ==
+            TEST_DATASET["customers_data"][1])
 
 
 def test_rent_book_db_failed(library_database):
@@ -334,8 +335,8 @@ def test_return_book_db_failed_wrong_customer(library_database):
 
 
 def test_return_book_db_failed_wrong_book(library_database):
-    with pytest.raises(ValueError) as err:
-        result = library_database.return_book(customer_id=1102, book_id=2201)
+    with pytest.raises(ValueError):
+        _ = library_database.return_book(customer_id=1102, book_id=2201)
     assert len(library_database._cursor.execute("SELECT * FROM rents").fetchall()) == len(TEST_DATASET["rents"])
 
 
