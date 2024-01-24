@@ -318,7 +318,7 @@ class Simulation:
             if result > 0:
                 # message for a book return if overdue fee was paid
                 return """{} {} took an overdue return of book titled '{}' from customer named {}
-                    (paid fee = {})""".format(
+                    (paid fee = {.:2f}$)""".format(
                     worker.position, worker.name, book.title, customer.name, result)
             else:
                 # message for a book return if no fee was paid
@@ -337,7 +337,7 @@ class Simulation:
             if result > 0:
                 # message for automatic book rent when book is returned and overdue fee is paid
                 return """{} {} took an overdue return of book titled '{}' from customer named {},
-                    (paid fee = {}) and automatically rented it to: {}""".format(
+                    (paid fee = {.:2f}$) and automatically rented it to: {}""".format(
                     worker.position, worker.name, book.title, customer.name, result, book.current_renter.name)
             else:
                 # message for automatic book rent when book is returned and no fee is paid

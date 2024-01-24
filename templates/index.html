@@ -67,10 +67,23 @@
                         Reset database
                     </label>
                 </div>
-                <div class="button-div">
-                    <button id="gen-sim" type="submit" class="btn btn-dark btn-block">Generate simulation</button>
-                </div>
+                {% if not status %}
+                    <div class="button-div">
+                        <button id="gen-sim" type="submit" class="btn btn-dark btn-block">Generate simulation</button>
+                    </div>
+                {% else %}
+                    <div class="button-div">
+                        <button id="gen-sim" type="submit" class="btn btn-dark btn-block">Regenerate simulation</button>
+                    </div>
+                {% endif %}
             </form>
+            {% if status %}
+                <div class="setup">
+                    <div class="button-div">
+                        <a href="{{ url_for('simulation') }}" class="btn-block"><button id="gen-sim" type="submit" class="btn btn-outline-dark btn-block">Return to simulation</button></a>
+                    </div>
+                </div>
+            {% endif %}
             <hr />
             <div style="width:100%">
                 <p class="h6">View the database</p>
@@ -91,6 +104,9 @@
                     <li><a href="{{ url_for('tables', table_name='users') }}" class="dropdown-item">Users</a></li>
                     {% endif %}
                 </ul>
+            </div>
+            <div class="button-div">
+                <a href="{{ url_for('get_analytics') }}" class="btn-block"><button id="analytics" type="submit" class="btn btn-outline-dark btn-block">Analytics</button></a>
             </div>
         </div>
     </div>

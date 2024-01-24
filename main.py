@@ -6,6 +6,10 @@ from flask_socketio import SocketIO
 from flask_bootstrap import Bootstrap4
 from database_generator import DatabaseGenerator
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib import rcParams
+import pandas as pd
 
 # Create flask app
 app = Flask(__name__)
@@ -58,12 +62,13 @@ def main():
     Returns:
         Renders template on GET, redirects on POST
     """
+    global sim
+    status = False if not sim else True
     if request.method == "POST":
         if request.form.get('data-reset'):
             DatabaseGenerator(cur=cur, db=db)
         # redirect to simulation page
         # if POST method is used create new simulation with selected failure_prob
-        global sim
         sim = Simulation(db_cursor=cur,
                          db_con=db,
                          failure_prob=float(request.form['failure-prob']),
@@ -72,7 +77,7 @@ def main():
         # Redirect to the simulation page
         return redirect(url_for('.simulation', sim=sim, bootstrap=bootstrap))
     # render main template
-    return render_template("index.html", bootstrap=bootstrap, user=current_user)
+    return render_template("index.html", bootstrap=bootstrap, user=current_user, status=status)
 
 
 @app.route("/", methods=["POST", "GET"])
@@ -128,6 +133,10 @@ def register():
             # Send flash message
             flash("Username already exists")
             # Redirect to the registration page
+            return redirect(url_for('register'))
+
+        if request.form.get('password') != request.form.get('password_confirm'):
+            flash("Passwords do not match")
             return redirect(url_for('register'))
 
         # Hash and salt password
@@ -218,6 +227,54 @@ def delete_account():
     flash("Account deleted")
     # Redirect to login page
     return redirect(url_for('login_page'))
+
+
+@app.route("/analytics")
+def get_analytics():
+    global db
+
+    df_books = pd.read_sql_query("SELECT COUNT(*) AS count, title FROM books GROUP BY title", db)
+    plot_and_save(data=df_books, x='count', y='title', path="static/images/books.png")
+
+    df_rents = pd.read_sql_query("SELECT COUNT(*) as count, customers.name FROM rents "
+                                 "JOIN customers ON rents.customer_id = customers.customer_id "
+                                 "GROUP BY rents.customer_id", db)
+    plot_and_save(df_rents, x='name', y='count', path="static/images/customer_rents.png", font_scale=0.7,
+                  xtick_rotation=45)
+
+    df_return_days = pd.read_sql_query("SELECT COUNT(name) as count, customers.name, return_date FROM rents "
+                                       "JOIN customers ON customers.customer_id=rents.customer_id "
+                                       "GROUP BY customers.name, return_date", db)
+    plot_and_save(data=df_return_days, x='return_date', y='name', size='count', kind='scatter',
+                  path="static/images/return_days.png", font_scale=0.4, xtick_rotation=45)
+
+    df_queues = pd.read_sql_query("SELECT SUM(data.count) AS sum, books.title FROM "
+                                  "(SELECT COUNT(customer_id) AS count, book_id FROM queues GROUP BY book_id) AS data "
+                                  "JOIN books ON data.book_id=books.book_id GROUP BY books.title", db)
+    print(df_return_days)
+    print(df_queues)
+    plot_and_save(data=df_queues, x='sum', y='title', path="static/images/queue_numbers.png")
+    return render_template('analytics.html', user=current_user)
+
+
+def plot_and_save(data, x, y, path, **kwargs):
+    plt.tight_layout()
+    sns.set(rc={'figure.figsize': kwargs.get('figsize', (100, 50))})
+    sns.set(font_scale=kwargs.get('font_scale', 0.3))
+    rcParams['axes.grid'] = kwargs.get('axes_grid', True)
+    rcParams['savefig.transparent'] = kwargs.get('transparent_bg', True)
+
+    if kwargs.get('kind', 'bar') == 'bar':
+        fig = sns.barplot(data=data, x=x, y=y, color=kwargs.get('plt_color', 'gray'))
+    else:
+        fig = sns.scatterplot(data=data, x=x, y=y, hue=kwargs.get('hue', None), size=kwargs.get('size', None),
+                              color=kwargs.get('color', 'gray'))
+
+    fig.set(xlabel=kwargs.get('xlabel', None), ylabel=kwargs.get('ylabel', None))
+    fig.set_xticklabels(fig.get_xticklabels(), rotation=kwargs.get('xtick_rotation', 0))
+    fig.get_figure().savefig(path, dpi=kwargs.get('dpi', 1000))
+    plt.clf()
+
 
 
 @app.route("/insert_data/<table_name>", methods=["POST", "GET"])
@@ -390,7 +447,6 @@ def handle_message(iters, actions):
     global sim
     if sim is None:
         # if no simulation is generated redirect to main page
-        print("No simulation generated!")
         socket.emit('redirect', {'url': url_for('main')})
         # return none to stop function from continuing
         return None

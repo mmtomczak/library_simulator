@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Analytics
+{% endblock %}
+
+{% block navbar_items %}
+    {{ super() }}
+    <a href="#" class="grey-out">Logged as {{ user.name }}</a>
+{% endblock %}
+
+{% block navbar_main %}
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-left" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M11.854 3.646a.5.5 0 0 1 0 .708L8.207 8l3.647 3.646a.5.5 0 0 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 0 1 .708 0M4.5 1a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 1 0v-13a.5.5 0 0 0-.5-.5"/>
+    </svg>
+{% endblock %}
+
+{% block content %}
+    <div id="landing">
+            <p class="display-4">Analytics</p>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="col text-center">
+                <p class="h6">Number of books by title</p>
+                <figure class="figure">
+                    <img src="{{ url_for('static', filename='images/books.png') }}" class="figure-img img-fluid rounded" alt="A generic square placeholder image with rounded corners in a figure.">
+                </figure>
+            </div>
+            <div class="col text-center">
+                <p class="h6">Number of rents by customer</p>
+                <figure class="figure">
+                    <img src="{{ url_for('static', filename='images/customer_rents.png') }}" class="figure-img img-fluid rounded" alt="A generic square placeholder image with rounded corners in a figure.">
+                </figure>
+            </div>
+        </div>
+        <hr style="width: 100%; color: black; height: 1px; background-color:black;" />
+        <div class="row">
+            <div class="col text-center">
+                <p class="h6">Book return dates by customer</p>
+                <figure class="figure">
+                    <img src="{{ url_for('static', filename='images/return_days.png') }}" class="figure-img img-fluid rounded" alt="A generic square placeholder image with rounded corners in a figure.">
+                </figure>
+            </div>
+            <div class="col text-center">
+                <p class="h6">Number of customers in queue by book</p>
+                <figure class="figure">
+                    <img src="{{ url_for('static', filename='images/queue_numbers.png') }}" class="figure-img img-fluid rounded" alt="A generic square placeholder image with rounded corners in a figure.">
+                </figure>
+            </div>
+        </div>
+    </div>
+{% endblock %}

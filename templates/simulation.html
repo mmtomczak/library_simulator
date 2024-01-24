@@ -38,7 +38,7 @@ Simulation
                 <output>2</output>
             </p>
         </div>
-        <a href="#sim"><button id="start-sim" class="btn btn-dark">START SIMULATION</button></a>
+        <a href="#start-sim"><button id="start-sim" class="btn btn-dark">START SIMULATION</button></a>
     </div>
     <div id="sim">
         <ul id="sim-messages"></ul>
@@ -61,7 +61,7 @@ Simulation
                 document.getElementById("return-main").href = "{{ url_for('main') }}";
                 let list = document.getElementById("sim-messages");
                 let entry = document.createElement('li');
-                entry.appendChild(document.createTextNode('/'.repeat(42) + ' SIMULATION PAUSED ' + '\\'.repeat(42)));
+                entry.appendChild(document.createTextNode('/'.repeat(41) + ' SIMULATION PAUSED ' + '\\'.repeat(41)));
                 list.appendChild(entry);
                 socket.disconnect()
             } else {
