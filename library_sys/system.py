@@ -217,8 +217,8 @@ class LibrarySystem:
         setattr(self, kind, new_id)
         return item_id
 
-    def rent_book(self, customer_id: int, book_id: int, worker_id: int, return_time=None, database_load: bool = False,
-                  return_days: int = 30):
+    def rent_book(self, customer_id: int, book_id: int, worker_id: int, return_days: int = 14, return_time=None,
+                  database_load: bool = False):
         """
         Rents a book to a customer.
 
@@ -228,7 +228,7 @@ class LibrarySystem:
             worker_id (int): ID of the worker renting the book
             return_time (optional): book return date, used when data is loaded from database, defaults to None
             database_load (bool, optional): set to True if data is not to be added to the database
-            return_days (int, optional): number of days the book is to be rented for, defaults to 30
+            return_days (int, optional): number of days the book is to be rented for, defaults to 14
 
         Returns:
             True if successful, False otherwise

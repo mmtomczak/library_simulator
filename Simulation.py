@@ -48,7 +48,6 @@ class Simulation:
         self.day = 1
         self.debug = debug
         self.print_messages = print_messages
-        self.return_days = kwargs.get("return_days")
         self.print_failures = kwargs.get("print_failures", False)
         self.failure_prob = kwargs.get("failure_prob", 0.5)
         self.action_probs = kwargs.get("action_probs", [1/len(ACTIONS) for _ in range(len(ACTIONS))])
@@ -127,7 +126,7 @@ class Simulation:
                 result, action = self.perform_action(book=action_book,
                                                      customer=action_customer,
                                                      action=action,
-                                                     worker=worker)
+                                                     worker=worker,)
 
                 if not result and action == "return_book" and not isinstance(result, float):
                     # if result is false check if action function was 'return_book' - in this case result may be of a
@@ -174,7 +173,7 @@ class Simulation:
             if action_func == "return_book":
                 # if customer has rented books, with 80% chance system can set earliest rented customer book as current
                 # action book - it is done to make simulation more dynamic
-                if customer.rented_books and np.random.choice([1, 0], p=[0.8, 0.2]):
+                if customer.rented_books and np.random.choice([1, 0], p=[1, 0]):
                     book = customer.rented_books[0]
 
             # if performed action is 'remove from queue'
@@ -219,8 +218,7 @@ class Simulation:
         # if book is not rented and has not empty queue
         if not book.is_rented() and book.queue:
             # rent book to the first customer in the book queue
-            return self.system.rent_book(customer_id=book.queue[0].id, book_id=book.id, worker_id=worker.id,
-                                         return_days=self.return_days)
+            return self.system.rent_book(customer_id=book.queue[0].id, book_id=book.id, worker_id=worker.id)
         return False
 
     def insert_data(self, table_name, **kwargs):
@@ -279,7 +277,7 @@ class Simulation:
         Returns:
             string indicating iteration end
         """
-        return f"{'-'*41} END OF THE DAY {self.day} {'-'*41}"
+        return f"{'-'*40} END OF THE DAY {self.day} {'-'*40}"
 
     def get_sim_date(self):
         """
@@ -318,7 +316,7 @@ class Simulation:
             if result > 0:
                 # message for a book return if overdue fee was paid
                 return """{} {} took an overdue return of book titled '{}' from customer named {}
-                    (paid fee = {.:2f}$)""".format(
+                    (paid fee = {:.2f}$)""".format(
                     worker.position, worker.name, book.title, customer.name, result)
             else:
                 # message for a book return if no fee was paid
@@ -337,7 +335,7 @@ class Simulation:
             if result > 0:
                 # message for automatic book rent when book is returned and overdue fee is paid
                 return """{} {} took an overdue return of book titled '{}' from customer named {},
-                    (paid fee = {.:2f}$) and automatically rented it to: {}""".format(
+                    (paid fee = {:.2f}$) and automatically rented it to: {}""".format(
                     worker.position, worker.name, book.title, customer.name, result, book.current_renter.name)
             else:
                 # message for automatic book rent when book is returned and no fee is paid

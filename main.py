@@ -71,8 +71,7 @@ def main():
         # if POST method is used create new simulation with selected failure_prob
         sim = Simulation(db_cursor=cur,
                          db_con=db,
-                         failure_prob=float(request.form['failure-prob']),
-                         return_days=5)
+                         failure_prob=float(request.form['failure-prob']))
         sim.generate_simulation()
         # Redirect to the simulation page
         return redirect(url_for('.simulation', sim=sim, bootstrap=bootstrap))
