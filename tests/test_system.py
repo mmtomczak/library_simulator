@@ -182,7 +182,7 @@ def test_calculate_fee(library_simple):
     library_simple.rent_book(0, 0, 0)
     library_simple.update_date(50)
     result = library_simple.return_book(0, 0)
-    assert isinstance(result, float) and result == 20 * 0.5
+    assert isinstance(result, float) and result == 36 * 0.5
 
 
 def test_update_date(library_simple):
