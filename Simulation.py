@@ -58,7 +58,7 @@ class Simulation:
             self.long_pause = kwargs.get("long_pause", 2)
             self.short_pause = kwargs.get("short_pause", 1)
 
-    def run_and_return_messages(self, num_sub_iterations: int = 1):
+    def run_and_return_messages(self, num_sub_iterations: int = 1) -> list:
         """
         Runs a simulation and collects response messages for one day with number of provided actions
 
@@ -94,7 +94,7 @@ class Simulation:
 
         return results
 
-    def get_action_messages(self):
+    def get_action_messages(self) -> list:
         """
         Returns a list of all messages for actions that were a result of one sub-iteration in simulation. Determines if
             the action was successful (resulted in a new message added) or unsuccessful (action was skipped due
@@ -151,7 +151,7 @@ class Simulation:
                     action_complete = True
         return messages
 
-    def perform_action(self, book, customer, action, worker):
+    def perform_action(self, book, customer, action, worker) -> tuple:
         """
         Performs a selected library system action
 
@@ -204,7 +204,7 @@ class Simulation:
 
         return result, action
 
-    def try_auto_rent(self, book, worker):
+    def try_auto_rent(self, book, worker) -> bool:
         """
         Checks and, if possible, automatically rents selected book to the first customer in queue.
 
@@ -221,7 +221,7 @@ class Simulation:
             return self.system.rent_book(customer_id=book.queue[0].id, book_id=book.id, worker_id=worker.id)
         return False
 
-    def insert_data(self, table_name, **kwargs):
+    def insert_data(self, table_name, **kwargs) -> bool:
         """
         Inserts new data into given table. Supports inserts only to customers, workers or books tables
 
@@ -261,7 +261,7 @@ class Simulation:
             # When encountering KeyError return False
             return False
 
-    def get_iteration_start(self):
+    def get_iteration_start(self) -> str:
         """
         Returns a message for iteration start
 
@@ -270,7 +270,7 @@ class Simulation:
         """
         return f"{'>'*28} DAY {self.day} {'<'*28}"
 
-    def get_iteration_end(self):
+    def get_iteration_end(self) -> str:
         """
         Returns a message for iteration end
 
@@ -279,7 +279,7 @@ class Simulation:
         """
         return f"{'-'*40} END OF THE DAY {self.day} {'-'*40}"
 
-    def get_sim_date(self):
+    def get_sim_date(self) -> str:
         """
             Returns a message for simulation date
 
@@ -289,7 +289,7 @@ class Simulation:
         return f"{'*'*5} {self.system.date.day}/{self.system.date.month}/{self.system.date.year} {'*'*5}"
 
     @staticmethod
-    def get_result(action: str, book, customer, worker, result):
+    def get_result(action: str, book, customer, worker, result) -> str:
         """
         Return a string message for a performed library action
 
@@ -344,7 +344,7 @@ class Simulation:
                     worker.position, worker.name, book.title, customer.name, book.current_renter.name)
 
     @staticmethod
-    def get_result_debug(action, book, customer, worker, result):
+    def get_result_debug(action, book, customer, worker, result) -> str:
         """
         Return a debug string message for a performed library action
 

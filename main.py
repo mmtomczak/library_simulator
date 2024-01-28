@@ -178,6 +178,7 @@ def logout():
 def delete_user(user_id):
     """
     Deletes user of given user_id, if possible. Redirects to the table template
+
     Args:
         user_id (int): ID of selected user
 
@@ -230,6 +231,12 @@ def delete_account():
 
 @app.route("/analytics")
 def get_analytics():
+    """
+    Creates plots and renders analytics page
+
+    Returns:
+        Render of analytics.html template
+    """
     global db
 
     df_books = pd.read_sql_query("SELECT COUNT(*) AS count, title FROM books GROUP BY title", db)
@@ -250,13 +257,34 @@ def get_analytics():
     df_queues = pd.read_sql_query("SELECT SUM(data.count) AS sum, books.title FROM "
                                   "(SELECT COUNT(customer_id) AS count, book_id FROM queues GROUP BY book_id) AS data "
                                   "JOIN books ON data.book_id=books.book_id GROUP BY books.title", db)
-    print(df_return_days)
-    print(df_queues)
     plot_and_save(data=df_queues, x='sum', y='title', path="static/images/queue_numbers.png")
     return render_template('analytics.html', user=current_user)
 
 
 def plot_and_save(data, x, y, path, **kwargs):
+    """
+    Creates plot for a given data and saves it
+
+    Args:
+        data (pandas.DataFrame): DataFrame with data that is to be plotted
+        x (str): Name of the column from the DataFrame that is to be plotted on x-axis
+        y (str): Name of the column from the DataFrame that is to be plotted on y-axis
+        path (str): Path, where plot is to be saved
+
+    Keyword Args:
+        figsize (tuple of int): Figure size, defaults to (100, 50)
+        font_scale (float): Scale of the plot font, defaults to 0.3
+        axes_grid (bool): If axes grid are to be shown, defaults to True
+        transparent_bg (bool): If plot background is to be transparent when saved, defaults to True
+        kind (str): Kind of plot that to be created, defaults to bar plot, else creates scatterplot
+        plt_color (str): Color of the plot, defaults to gray
+        hue (str | None): Column from DataFrame that will decide hue of the plot points, defaults to None
+        size (str | None): Column from DataFrame that will decide size of the plot points, defaults to None
+        xlabel (str | None): X-axis label, defaults to None
+        ylabel (str | None): Y-axis label, defaults to None
+        xtick_rotation (int): Rotation (in degrees) of x-axis ticks, defaults to 0
+        dpi (int): DPI of the saved plot, defaults to 1000
+    """
     plt.tight_layout()
     sns.set(rc={'figure.figsize': kwargs.get('figsize', (100, 50))})
     sns.set(font_scale=kwargs.get('font_scale', 0.3))
@@ -273,7 +301,6 @@ def plot_and_save(data, x, y, path, **kwargs):
     fig.set_xticklabels(fig.get_xticklabels(), rotation=kwargs.get('xtick_rotation', 0))
     fig.get_figure().savefig(path, dpi=kwargs.get('dpi', 1000))
     plt.clf()
-
 
 
 @app.route("/insert_data/<table_name>", methods=["POST", "GET"])
