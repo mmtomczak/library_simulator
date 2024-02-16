@@ -24,28 +24,28 @@
             <h4 class="flash-msg">{{ msg }}</h4>
         {% endfor %}
         <p class="display-4">Python and SQL - simulation of the library system</p>
-        <div class="intro">
-            <p class="h6">Introduction</p>
-            <p class="text-indent">The task of this program is to mimic library system. The customers have the possibility to rent books, return them, wait for given book in queue or resign from
-            waiting in the queue. Every action can be performed with help from the library workers.</p>
-            <p class="text-indent">The simulation is build on top of independent library system that provides statuses for performing actions as well as communicates with the internal SQL database.
-            The role of the simulation is to perform actions in random manner as well as provide text messages regarding results of those actions. Due to the nature of this simulation
-            some simplifications were implemented to improve the efficiency of the program. We assume that if the customer want to be added to the queue of given book, but we can see
-            that the queue is empty, the action of the customer can be interpreted as intent to rent the book, so we automatically rent this book to said customer. However, this does not
-            apply in the opposite scenario - we do not add the customer to the queue if their intent was to rent a book that is already rented as we assume that the customer does not want
-            to wait for said book. We also do not rent him a different instance of the same book, even if it is available. When book is returned and the queue for said book is not empty
-            we assume that the client is already waiting for this book, and we rent it to him automatically.</p>
-            <p class="text-indent">This library simulation works by performing random actions over every iteration. But every time an action is assigned to worker there is a chance that this action will
-            fail and not be performed. The probability of such scenario can be adjusted below. Note that it is possible to change this value in between iterations by returning to this
-            page and generating the simulation again.</p>
-            <p class="text-indent">By checking the 'Reset database' checkbox the database connected to the simulation will be wiped - only data regarding customers, workers and books will remain.</p>
-            <p class="text-indent">You can always come back to this page by clicking 'Library simulation' text in upper left corner. Note that during the simulation this button will be disabled. It is
-            not recommended to leave the simulation page during working as running it again may display new messages as well as messages still left in the queue from the initial run.</p>
-            <p class="text-indent">On the next page you will need to specify the number of iterations and sub-iterations. Every iteration in the simulation is regarded to as a day. After each simulation internal library system date is updated by
-            one day. For each day there can be performed several sub-iterations. Sub-iteration makes it possible for every worker to perform (or fail) action.
-        </p>
-            <p>When ready, click the 'Generate simulation' button to go to the simulation page.</p>
-        </div>
+{#        <div class="intro">#}
+{#            <p class="h6">Introduction</p>#}
+{#            <p class="text-indent">The task of this program is to mimic library system. The customers have the possibility to rent books, return them, wait for given book in queue or resign from#}
+{#            waiting in the queue. Every action can be performed with help from the library workers.</p>#}
+{#            <p class="text-indent">The simulation is build on top of independent library system that provides statuses for performing actions as well as communicates with the internal SQL database.#}
+{#            The role of the simulation is to perform actions in random manner as well as provide text messages regarding results of those actions. Due to the nature of this simulation#}
+{#            some simplifications were implemented to improve the efficiency of the program. We assume that if the customer want to be added to the queue of given book, but we can see#}
+{#            that the queue is empty, the action of the customer can be interpreted as intent to rent the book, so we automatically rent this book to said customer. However, this does not#}
+{#            apply in the opposite scenario - we do not add the customer to the queue if their intent was to rent a book that is already rented as we assume that the customer does not want#}
+{#            to wait for said book. We also do not rent him a different instance of the same book, even if it is available. When book is returned and the queue for said book is not empty#}
+{#            we assume that the client is already waiting for this book, and we rent it to him automatically.</p>#}
+{#            <p class="text-indent">This library simulation works by performing random actions over every iteration. But every time an action is assigned to worker there is a chance that this action will#}
+{#            fail and not be performed. The probability of such scenario can be adjusted below. Note that it is possible to change this value in between iterations by returning to this#}
+{#            page and generating the simulation again.</p>#}
+{#            <p class="text-indent">By checking the 'Reset database' checkbox the database connected to the simulation will be wiped - only data regarding customers, workers and books will remain.</p>#}
+{#            <p class="text-indent">You can always come back to this page by clicking 'Library simulation' text in upper left corner. Note that during the simulation this button will be disabled. It is#}
+{#            not recommended to leave the simulation page during working as running it again may display new messages as well as messages still left in the queue from the initial run.</p>#}
+{#            <p class="text-indent">On the next page you will need to specify the number of iterations and sub-iterations. Every iteration in the simulation is regarded to as a day. After each simulation internal library system date is updated by#}
+{#            one day. For each day there can be performed several sub-iterations. Sub-iteration makes it possible for every worker to perform (or fail) action.#}
+{#        </p>#}
+{#            <p>When ready, click the 'Generate simulation' button to go to the simulation page.</p>#}
+{#        </div>#}
         <hr />
         <div id="setup">
             <div class="intro">

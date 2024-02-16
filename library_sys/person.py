@@ -63,12 +63,10 @@ class Customer(Person):
 
     Attributes:
         rented_books(list): List of books rented by the customer
-        rating(int): Rating of the customer
     """
     def __init__(self, name, id):
         super().__init__(name, id)
         self.rented_books = []
-        self.rating = 0
 
     def return_book(self, book):
         """

@@ -238,26 +238,29 @@ def get_analytics():
         Render of analytics.html template
     """
     global db
+    try:
+        df_books = pd.read_sql_query("SELECT COUNT(*) AS count, title FROM books GROUP BY title", db)
+        plot_and_save(data=df_books, x='count', y='title', path="static/images/books.png")
 
-    df_books = pd.read_sql_query("SELECT COUNT(*) AS count, title FROM books GROUP BY title", db)
-    plot_and_save(data=df_books, x='count', y='title', path="static/images/books.png")
+        df_rents = pd.read_sql_query("SELECT COUNT(*) as count, customers.name FROM rents "
+                                     "JOIN customers ON rents.customer_id = customers.customer_id "
+                                     "GROUP BY rents.customer_id", db)
+        plot_and_save(df_rents, x='name', y='count', path="static/images/customer_rents.png", font_scale=0.7,
+                      xtick_rotation=45)
 
-    df_rents = pd.read_sql_query("SELECT COUNT(*) as count, customers.name FROM rents "
-                                 "JOIN customers ON rents.customer_id = customers.customer_id "
-                                 "GROUP BY rents.customer_id", db)
-    plot_and_save(df_rents, x='name', y='count', path="static/images/customer_rents.png", font_scale=0.7,
-                  xtick_rotation=45)
+        df_return_days = pd.read_sql_query("SELECT COUNT(name) as count, customers.name, return_date FROM rents "
+                                           "JOIN customers ON customers.customer_id=rents.customer_id "
+                                           "GROUP BY customers.name, return_date", db)
+        plot_and_save(data=df_return_days, x='return_date', y='name', size='count', kind='scatter',
+                      path="static/images/return_days.png", font_scale=0.4, xtick_rotation=45)
 
-    df_return_days = pd.read_sql_query("SELECT COUNT(name) as count, customers.name, return_date FROM rents "
-                                       "JOIN customers ON customers.customer_id=rents.customer_id "
-                                       "GROUP BY customers.name, return_date", db)
-    plot_and_save(data=df_return_days, x='return_date', y='name', size='count', kind='scatter',
-                  path="static/images/return_days.png", font_scale=0.4, xtick_rotation=45)
-
-    df_queues = pd.read_sql_query("SELECT SUM(data.count) AS sum, books.title FROM "
-                                  "(SELECT COUNT(customer_id) AS count, book_id FROM queues GROUP BY book_id) AS data "
-                                  "JOIN books ON data.book_id=books.book_id GROUP BY books.title", db)
-    plot_and_save(data=df_queues, x='sum', y='title', path="static/images/queue_numbers.png")
+        df_queues = pd.read_sql_query("SELECT SUM(data.count) AS sum, books.title FROM "
+                                      "(SELECT COUNT(customer_id) AS count, book_id FROM queues GROUP BY book_id) AS data "
+                                      "JOIN books ON data.book_id=books.book_id GROUP BY books.title", db)
+        plot_and_save(data=df_queues, x='sum', y='title', path="static/images/queue_numbers.png")
+    except ValueError:
+        flash("Not enough data, run the simulation for longer!")
+        return redirect(url_for('main'))
     return render_template('analytics.html', user=current_user)
 
 

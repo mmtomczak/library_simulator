@@ -173,7 +173,7 @@ class Simulation:
             if action_func == "return_book":
                 # if customer has rented books, with 80% chance system can set earliest rented customer book as current
                 # action book - it is done to make simulation more dynamic
-                if customer.rented_books and np.random.choice([1, 0], p=[1, 0]):
+                if customer.rented_books and np.random.choice([1, 0], p=[0.8, 0.2]):
                     book = customer.rented_books[0]
 
             # if performed action is 'remove from queue'
