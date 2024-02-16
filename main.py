@@ -219,7 +219,7 @@ def delete_account():
         # Send flash message
         flash("Cannot delete admin account")
         # Redirect to main
-        return redirect(url_for('main'))
+        return redirect(url_for('user_profile'))
     # Delete row from users table where user_id matches current user ID
     cur.execute(f"DELETE FROM users WHERE user_id = '{user_id}'")
     db.commit()
@@ -304,6 +304,33 @@ def plot_and_save(data, x, y, path, **kwargs):
     fig.set_xticklabels(fig.get_xticklabels(), rotation=kwargs.get('xtick_rotation', 0))
     fig.get_figure().savefig(path, dpi=kwargs.get('dpi', 1000))
     plt.clf()
+
+@app.route("/profile")
+@login_required
+def user_profile():
+    return render_template("profile.html", user=current_user)
+
+@app.route("/profile/change_password/<int:user_id>", methods=["POST", "GET"])
+def change_password(user_id):
+    if request.method == "POST":
+        user = cur.execute(f"SELECT password, user_id, username FROM users WHERE user_id = '{user_id}'").fetchone()
+        old_password = request.form.get("password_old")
+        if not check_password_hash(user[0], old_password):
+            flash("Incorrect current password!")
+            return redirect(url_for("user_profile"))
+        if request.form.get("password_new") != request.form.get("password_confirm"):
+            flash("New passwords do not match!")
+            return redirect(url_for("user_profile"))
+        else:
+            hash_password = generate_password_hash(request.form.get('password_new'),
+                                                   method='pbkdf2:sha256',
+                                                   salt_length=8)
+            cur.execute(f"UPDATE users SET password='{hash_password}' WHERE user_id='{user_id}'")
+            db.commit()
+            flash("Password changed successfully!")
+            return redirect(url_for("user_profile"))
+    return redirect(url_for("user_profile"))
+
 
 
 @app.route("/insert_data/<table_name>", methods=["POST", "GET"])

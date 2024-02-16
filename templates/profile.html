@@ -35,7 +35,7 @@
             <form class="form-signin" action="{{ url_for('change_password', user_id=current_user.id) }}" method="post">
                 <h1 class="display-6">Change password</h1>
                 <label for="password_old" class="sr-only">Old Password</label>
-                <input type="text" name="password_old" placeholder="Old Password" class="form-control" required/>
+                <input type="password" name="password_old" placeholder="Old Password" class="form-control" required/>
                 <label for="password_new" class="sr-only">New Password</label>
                 <input type="password" name="password_new" placeholder="New Password" class="form-control" required />
                 <label for="password_confirm" class="sr-only">Confirm New Password</label>
